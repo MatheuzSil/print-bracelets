@@ -33,8 +33,8 @@ if (!TOTEM_ID) {
 
         // Substitui os placeholders pelos valores variáveis
         tspl = tspl
-          .replace('{NOME}', children.nome)
-          .replace('{DATA}', children.age)
+          .replace('{NOME}', children.name)
+          .replace('{DATA}', children.birthDate)
           .replace('{QRCODE_DATA}', children.qrcodeUrl || 'https://example.com');
 
         // Conecta à impressora
