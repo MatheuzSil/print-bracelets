@@ -25,18 +25,20 @@ if (!TOTEM_ID) {
 
     channel.consume(queueName, (msg) => {
       if (msg !== null) {
-        const children = JSON.parse(msg.content.toString());
-        console.log("mensagem recebida", children);
-        console.log(`Imprimindo pulseira para: ${children.name}`);
+        const payload = JSON.parse(msg.content.toString());
+        const child = payload.children[0]; // Corrigido!
+
+        console.log("mensagem recebida", payload);
+        console.log(`Imprimindo pulseira para: ${child.name}`);
 
         // Lê o arquivo de layout
         let tspl = fs.readFileSync('layout.tspl', 'utf8');
 
         // Substitui os placeholders pelos valores variáveis
         tspl = tspl
-          .replace('{NOME}', children.name)
-          .replace('{DATA}', children.birthDate)
-          .replace('{QRCODE_DATA}', children.qrcodeUrl || 'https://example.com');
+          .replace('{NOME}', child.name)
+          .replace('{DATA}', child.birthDate)
+          .replace('{QRCODE_DATA}', child.qrcodeUrl || 'https://example.com');
 
         // Conecta à impressora
         const client = new net.Socket();
