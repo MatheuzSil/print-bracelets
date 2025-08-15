@@ -27,6 +27,7 @@ if (!TOTEM_ID) {
       if (msg !== null) {
         const children = JSON.parse(msg.content.toString());
         console.log("mensagem recebida", children);
+        console.log(`Imprimindo pulseira para: ${children.name}`);
 
         // Lê o arquivo de layout
         let tspl = fs.readFileSync('layout.tspl', 'utf8');
