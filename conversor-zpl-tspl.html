@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conversor ZPL para TSPL - Gainscha</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .converter-section {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .input-section, .output-section {
+            flex: 1;
+        }
+        textarea {
+            width: 100%;
+            height: 300px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            background: #007acc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #005a9e;
+        }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 Conversor ZPL → TSPL</h1>
+        
+        <div class="warning">
+            <strong>⚠️ Importante:</strong> ZPL (Zebra) e TSPL (Gainscha) são linguagens diferentes. 
+            Esta conversão é uma aproximação e pode precisar de ajustes manuais.
+        </div>
+        
+        <div class="converter-section">
+            <div class="input-section">
+                <h3>📥 Cole seu código ZPL aqui:</h3>
+                <textarea id="zplInput" placeholder="Cole o código ZPL do Zebra Designer aqui...
+Exemplo:
+^XA
+^FO50,50^A0N,30,30^FDTESTE^FS
+^BY2,3,50
+^FO50,100^BCN,50,Y,N,N
+^FD1234567890^FS
+^XZ"></textarea>
+                
+                <button onclick="convertZplToTspl()">🔄 Converter para TSPL</button>
+                <button onclick="loadSampleZpl()">📋 Carregar Exemplo</button>
+            </div>
+            
+            <div class="output-section">
+                <h3>📤 Código TSPL convertido:</h3>
+                <textarea id="tsplOutput" readonly></textarea>
+                
+                <button onclick="generateNodeJsFromTspl()">🚀 Gerar Node.js</button>
+                <button onclick="copyTsplToClipboard()">📋 Copiar TSPL</button>
+            </div>
+        </div>
+        
+        <div id="nodeOutput" style="display: none;">
+            <h3>📄 Código Node.js pronto para usar:</h3>
+            <textarea id="finalNodeCode" readonly style="height: 400px;"></textarea>
+            <button onclick="copyNodeToClipboard()">📋 Copiar Node.js</button>
+        </div>
+        
+        <div id="conversionLog"></div>
+    </div>
+
+    <script>
+        function convertZplToTspl() {
+            const zplCode = document.getElementById('zplInput').value;
+            let tsplCode = '';
+            let log = [];
+            
+            // Adicionar cabeçalho TSPL padrão
+            tsplCode += 'SIZE 270 mm, 24 mm\n';
+            tsplCode += 'GAP 20 mm, 0\n';
+            tsplCode += 'DIRECTION 0\n';
+            tsplCode += 'CLS\n';
+            
+            // Converter comandos ZPL para TSPL
+            const lines = zplCode.split('\n');
+            
+            for (let line of lines) {
+                line = line.trim();
+                
+                // Texto (^FO + ^A + ^FD)
+                if (line.includes('^FO') && line.includes('^FD')) {
+                    const foMatch = line.match(/\^FO(\d+),(\d+)/);
+                    const fdMatch = line.match(/\^FD([^\^]+)/);
+                    
+                    if (foMatch && fdMatch) {
+                        const x = foMatch[1];
+                        const y = foMatch[2];
+                        const text = fdMatch[1];
+                        
+                        tsplCode += `TEXT ${x}, ${y}, "3", 0, 1, 1, "${text}"\n`;
+                        log.push(`✅ Texto convertido: "${text}" na posição (${x}, ${y})`);
+                    }
+                }
+                
+                // Código de barras (^BC + ^FD)
+                if (line.includes('^BC') || line.includes('^BY')) {
+                    const foMatch = line.match(/\^FO(\d+),(\d+)/);
+                    if (foMatch) {
+                        const x = foMatch[1];
+                        const y = foMatch[2];
+                        
+                        // Procurar próxima linha com ^FD para dados do código de barras
+                        const nextLineIndex = lines.indexOf(line) + 1;
+                        if (nextLineIndex < lines.length) {
+                            const nextLine = lines[nextLineIndex];
+                            const fdMatch = nextLine.match(/\^FD([^\^]+)/);
+                            
+                            if (fdMatch) {
+                                const barcodeData = fdMatch[1];
+                                tsplCode += `BARCODE ${x}, ${y}, "128", 50, 1, 0, 2, 2, "${barcodeData}"\n`;
+                                log.push(`✅ Código de barras convertido: "${barcodeData}" na posição (${x}, ${y})`);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            tsplCode += 'PRINT 1\n';
+            
+            document.getElementById('tsplOutput').value = tsplCode;
+            
+            // Mostrar log da conversão
+            const logDiv = document.getElementById('conversionLog');
+            if (log.length > 0) {
+                logDiv.innerHTML = `<div class="success"><strong>✅ Conversão realizada:</strong><br>${log.join('<br>')}</div>`;
+            } else {
+                logDiv.innerHTML = `<div class="warning"><strong>⚠️ Nenhum elemento reconhecido.</strong><br>Verifique se o código ZPL está correto.</div>`;
+            }
+        }
+        
+        function loadSampleZpl() {
+            const sampleZpl = `^XA
+^FO50,30^A0N,25,25^FDPACIENTE: JOÃO SILVA^FS
+^FO50,60^A0N,20,20^FDNASCIMENTO: 01/01/1990^FS
+^BY2,3,40
+^FO50,100^BCN,40,Y,N,N
+^FD1234567890^FS
+^XZ`;
+            
+            document.getElementById('zplInput').value = sampleZpl;
+        }
+        
+        function generateNodeJsFromTspl() {
+            const tsplCode = document.getElementById('tsplOutput').value;
+            
+            if (!tsplCode.trim()) {
+                alert('Primeiro converta o código ZPL para TSPL!');
+                return;
+            }
+            
+            const nodeCode = `const net = require('net');
+
+const printerIP = '192.168.123.100';  // IP da sua impressora
+const printerPort = 9100;
+
+const client = new net.Socket();
+
+client.connect(printerPort, printerIP, () => {
+  console.log('Conectado à impressora Gainscha');
+
+  // Código TSPL convertido do ZPL
+  const tspl = \`${tsplCode}\`;
+
+  client.write(tspl, 'utf8', () => {
+    console.log('Layout enviado para impressão');
+    client.end();
+  });
+});
+
+client.on('error', (err) => {
+  console.error('Erro na conexão:', err);
+});
+
+client.on('close', () => {
+  console.log('Conexão fechada');
+});`;
+
+            document.getElementById('finalNodeCode').value = nodeCode;
+            document.getElementById('nodeOutput').style.display = 'block';
+        }
+        
+        function copyTsplToClipboard() {
+            const tspl = document.getElementById('tsplOutput').value;
+            navigator.clipboard.writeText(tspl).then(() => {
+                alert('Código TSPL copiado!');
+            });
+        }
+        
+        function copyNodeToClipboard() {
+            const nodeCode = document.getElementById('finalNodeCode').value;
+            navigator.clipboard.writeText(nodeCode).then(() => {
+                alert('Código Node.js copiado!');
+            });
+        }
+    </script>
+</body>
+</html>

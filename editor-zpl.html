@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editor ZPL - Gainscha</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .editor-section {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .code-editor {
+            flex: 1;
+        }
+        .preview {
+            flex: 1;
+            border: 2px solid #ddd;
+            padding: 20px;
+            background: #fafafa;
+            border-radius: 5px;
+        }
+        textarea {
+            width: 100%;
+            height: 350px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            background: #007acc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #005a9e;
+        }
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .output {
+            background: #f0f0f0;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 20px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏷️ Editor ZPL - Gainscha GS-2208D</h1>
+        
+        <div class="success">
+            <strong>✅ Ótimo!</strong> Sua impressora aceita ZPL, então você pode usar o código do Zebra Designer diretamente!
+        </div>
+        
+        <div class="editor-section">
+            <div class="code-editor">
+                <h3>Código ZPL:</h3>
+                <textarea id="zplCode">^XA
+^LH0,0
+^FO50,30^BY2,3,40^BCN,40,Y,N,N^FD1234567890^FS
+^FO150,50^A0N,25,25^FDT E S T E^FS
+^XZ</textarea>
+                
+                <div>
+                    <button onclick="generateNodeJS()">📄 Gerar Node.js</button>
+                    <button onclick="copyToClipboard()">📋 Copiar Código</button>
+                    <button onclick="loadPreset('pulseira')">🏷️ Pulseira Básica</button>
+                    <button onclick="loadPreset('completa')">📋 Pulseira Completa</button>
+                    <button onclick="loadPreset('hospital')">🏥 Modelo Hospital</button>
+                </div>
+            </div>
+            
+            <div class="preview">
+                <h3>Como usar:</h3>
+                <ol>
+                    <li><strong>Cole seu código ZPL</strong> do Zebra Designer no editor</li>
+                    <li><strong>Clique em "Gerar Node.js"</strong></li>
+                    <li><strong>Copie o código</strong> e salve em um arquivo .js</li>
+                    <li><strong>Execute:</strong> <code>node arquivo.js</code></li>
+                </ol>
+                
+                <h4>📐 Dimensões da pulseira:</h4>
+                <ul>
+                    <li><strong>Largura:</strong> 24mm</li>
+                    <li><strong>Comprimento:</strong> 270mm</li>
+                    <li><strong>Gap:</strong> 20mm</li>
+                </ul>
+                
+                <h4>🎯 Comandos ZPL úteis:</h4>
+                <ul>
+                    <li><code>^XA</code> - Início do label</li>
+                    <li><code>^FO x,y</code> - Posição (x,y)</li>
+                    <li><code>^A0N,h,w</code> - Fonte (altura, largura)</li>
+                    <li><code>^FD texto ^FS</code> - Texto</li>
+                    <li><code>^BC</code> - Código de barras</li>
+                    <li><code>^XZ</code> - Fim do label</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="output" id="output"></div>
+    </div>
+
+    <script>
+        function generateNodeJS() {
+            const zplCode = document.getElementById('zplCode').value;
+            const nodeCode = `const net = require('net');
+
+const printerIP = '192.168.123.100';  // IP da sua impressora
+const printerPort = 9100;
+
+const client = new net.Socket();
+
+client.connect(printerPort, printerIP, () => {
+  console.log('Conectado à impressora Gainscha');
+
+  // Código ZPL do Zebra Designer
+  const zpl = \`${zplCode}\`;
+
+  client.write(zpl, 'utf8', () => {
+    console.log('Pulseira enviada para impressão');
+    client.end();
+  });
+});
+
+client.on('error', (err) => {
+  console.error('Erro na conexão:', err);
+});
+
+client.on('close', () => {
+  console.log('Conexão fechada');
+});`;
+
+            document.getElementById('output').textContent = nodeCode;
+        }
+
+        function copyToClipboard() {
+            const output = document.getElementById('output').textContent;
+            if (output) {
+                navigator.clipboard.writeText(output).then(() => {
+                    alert('Código copiado para a área de transferência!');
+                });
+            } else {
+                alert('Primeiro gere o código Node.js!');
+            }
+        }
+
+        function loadPreset(type) {
+            const textarea = document.getElementById('zplCode');
+            
+            switch(type) {
+                case 'pulseira':
+                    textarea.value = `^XA
+^LH0,0
+^FO50,30^BY2,3,40^BCN,40,Y,N,N^FD1234567890^FS
+^FO150,50^A0N,25,25^FDT E S T E^FS
+^XZ`;
+                    break;
+                    
+                case 'completa':
+                    textarea.value = `^XA
+^LH0,0
+^FO20,20^A0N,20,20^FDPaciente: João Silva^FS
+^FO20,45^A0N,15,15^FDNasc: 01/01/1990^FS
+^FO20,70^BY2,3,35^BCN,35,Y,N,N^FD1234567890^FS
+^XZ`;
+                    break;
+                    
+                case 'hospital':
+                    textarea.value = `^XA
+^LH0,0
+^FO10,10^A0N,18,18^FDHospital ABC^FS
+^FO10,30^A0N,16,16^FDPaciente: Maria Santos^FS
+^FO10,50^A0N,14,14^FDLeito: 101A^FS
+^FO10,70^A0N,14,14^FDData: 12/08/2025^FS
+^FO150,70^BY2,3,30^BCN,30,Y,N,N^FD9876543210^FS
+^XZ`;
+                    break;
+            }
+        }
+
+        // Gerar código inicial
+        generateNodeJS();
+    </script>
+</body>
+</html>
