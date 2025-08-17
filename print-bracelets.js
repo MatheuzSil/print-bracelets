@@ -26,11 +26,18 @@ if (!TOTEM_ID) {
     channel.consume(queueName, (msg) => {
       if (msg !== null) {
         const payload = JSON.parse(msg.content.toString());
-        const child = payload.children[0]; // Corrigido!
+        const children = payload.children.map(child => {
+          return {
+            name: child.name,
+            birthDate: child.birthDate,
+            qrcodeUrl: child.qrcodeUrl
+          };
+        });
 
         console.log("mensagem recebida", payload);
-        console.log(`Imprimindo pulseira para: ${child.name}`);
-
+        children.forEach(child => {
+          console.log(`Imprimindo pulseira para: ${child.name}`);
+        });
         // Lê o arquivo de layout
         let tspl = fs.readFileSync('layout.tspl', 'utf8');
 
