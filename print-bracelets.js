@@ -35,37 +35,53 @@ if (!TOTEM_ID) {
         });
 
         console.log("mensagem recebida", payload);
-        children.forEach(child => {
-          console.log(`Imprimindo pulseira para: ${child.name}`);
-        });
-        // Lê o arquivo de layout
-        let tspl = fs.readFileSync('layout.tspl', 'utf8');
+        console.log(`Imprimindo ${children.length} pulseira(s)`);
 
-        // Substitui os placeholders pelos valores variáveis
-        tspl = tspl
-          .replace('{NOME}', child.name)
-          .replace('{DATA}', child.birthDate)
-          .replace('{QRCODE_DATA}', child.qrcodeUrl || 'https://example.com');
+        // Função para imprimir uma pulseira por vez (sequencial)
+        function printNext(index) {
+          if (index >= children.length) {
+            console.log('Todas as pulseiras foram impressas');
+            channel.ack(msg);
+            return;
+          }
 
-        // Conecta à impressora
-        const client = new net.Socket();
-        client.connect(printerPort, printerIP, () => {
-          console.log('Conectado à impressora');
-          client.write(tspl, 'utf8', () => {
-            console.log('Comando enviado');
-            client.end();
+          const child = children[index];
+          console.log(`Imprimindo pulseira ${index + 1} para: ${child.name}`);
+          
+          // Lê o arquivo de layout
+          let tspl = fs.readFileSync('layout.tspl', 'utf8');
+
+          // Substitui os placeholders pelos valores variáveis
+          tspl = tspl
+            .replace('{NOME}', child.name)
+            .replace('{DATA}', child.birthDate)
+            .replace('{QRCODE_DATA}', child.qrcodeUrl || 'https://example.com');
+
+          // Conecta à impressora
+          const client = new net.Socket();
+          client.connect(printerPort, printerIP, () => {
+            console.log(`Conectado à impressora para ${child.name}`);
+            client.write(tspl, 'utf8', () => {
+              console.log(`Comando enviado para ${child.name}`);
+              client.end();
+            });
           });
-        });
 
-        client.on('error', (err) => {
-          console.error('Erro na conexão:', err);
-        });
+          client.on('error', (err) => {
+            console.error(`Erro na conexão para ${child.name}:`, err);
+            // Mesmo com erro, continua para a próxima
+            setTimeout(() => printNext(index + 1), 1000);
+          });
 
-        client.on('close', () => {
-          console.log('Conexão fechada');
-        });
+          client.on('close', () => {
+            console.log(`Conexão fechada para ${child.name}`);
+            // Aguarda 2 segundos antes da próxima impressão
+            setTimeout(() => printNext(index + 1), 2000);
+          });
+        }
 
-        channel.ack(msg);
+        // Inicia a impressão sequencial
+        printNext(0);
       }
     }, { noAck: false });
   }
