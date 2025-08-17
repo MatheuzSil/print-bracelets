@@ -28,9 +28,10 @@ if (!TOTEM_ID) {
         const payload = JSON.parse(msg.content.toString());
         const children = payload.children.map(child => {
           return {
+            Id: child.id,
             name: child.name,
             birthDate: child.birthDate,
-            qrcodeUrl: child.qrcodeUrl
+            class: child.class,
           };
         });
 
@@ -50,12 +51,15 @@ if (!TOTEM_ID) {
           
           // Lê o arquivo de layout
           let tspl = fs.readFileSync('layout.tspl', 'utf8');
+          const Id = Math.floor(10000 + Math.random() * 90000).toString().slice(0, 3);
 
           // Substitui os placeholders pelos valores variáveis
           tspl = tspl
+            .replace('{ID}', Id)
             .replace('{NOME}', child.name)
+            .replace('{CLASSE}', child.class)
             .replace('{DATA}', child.birthDate)
-            .replace('{QRCODE_DATA}', child.qrcodeUrl || 'https://example.com');
+            .replace('{QRCODE_DATA}', `https://flechakids.space/child/${child.Id}`);
 
           // Conecta à impressora
           const client = new net.Socket();
