@@ -3,7 +3,7 @@ const amqp = require('amqplib');
 const net = require('net');
 
 const RABBIT_URL = "amqps://heqbymsv:2twbq9gst2Mo8GpjeRZ41Tdw46zu4Ygj@jackal.rmq.cloudamqp.com/heqbymsv";
-const TOTEM_ID = '5deadc68-a674-4992-8276-0211c69cd39c'; 
+const TOTEM_ID = 'b03ba57f-c2de-41c2-ad70-28409fa92892'; 
 const printerIP = '192.168.123.100';
 const printerPort = 9100;
 
