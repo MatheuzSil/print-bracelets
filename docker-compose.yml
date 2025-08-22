@@ -1,0 +1,8 @@
+services:
+  print-bracelets:
+    build: .
+    container_name: print-bracelets-system
+    stdin_open: true
+    tty: true
+    network_mode: "bridge"
+    restart: "no"

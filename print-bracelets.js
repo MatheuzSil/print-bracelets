@@ -2,22 +2,28 @@ const fs = require('fs');
 const amqp = require('amqplib');
 const net = require('net');
 
-const RABBIT_URL = "amqps://heqbymsv:2twbq9gst2Mo8GpjeRZ41Tdw46zu4Ygj@jackal.rmq.cloudamqp.com/heqbymsv";
-const TOTEM_ID = 'b03ba57f-c2de-41c2-ad70-28409fa92892'; 
-const printerIP = '192.168.123.100';
-const printerPort = 9100;
+const totemId = process.env.TOTEM_ID;
+const printerIp = process.env.PRINTER_IP;
+const printerPort = process.env.PRINTER_PORT || 9100;
+const rabbitUrl = process.env.RABBIT_URL;
+const machineId = process.env.MACHINE_ID;
 
-if (!TOTEM_ID) {
+if (!totemId) {
   console.error("Erro: TOTEM_ID não definido");
+  process.exit(1);
+}
+
+if (!printerIp) {
+  console.error("Erro: PRINTER_IP não definido");
   process.exit(1);
 }
 
 (async () => {
   try {
-    const queueName = `print_bracelets_${TOTEM_ID}`;
+    const queueName = `print_bracelets_${totemId}`;
     console.log(`Nome da fila: ${queueName}`);
 
-    const connection = await amqp.connect(RABBIT_URL);
+    const connection = await amqp.connect(rabbitUrl);
     const channel = await connection.createChannel();
 
     await channel.assertQueue(queueName, { durable: true });
@@ -63,7 +69,7 @@ if (!TOTEM_ID) {
 
           // Conecta à impressora
           const client = new net.Socket();
-          client.connect(printerPort, printerIP, () => {
+          client.connect(printerPort, printerIp, () => {
             console.log(`Conectado à impressora para ${child.name}`);
             client.write(tspl, 'utf8', () => {
               console.log(`Comando enviado para ${child.name}`);
@@ -79,8 +85,8 @@ if (!TOTEM_ID) {
 
           client.on('close', () => {
             console.log(`Conexão fechada para ${child.name}`);
-            // Aguarda 2 segundos antes da próxima impressão
-            setTimeout(() => printNext(index + 1), 2000);
+            // Aguarda 10 segundos antes da próxima impressão
+            setTimeout(() => printNext(index + 1), 8000);
           });
         }
 

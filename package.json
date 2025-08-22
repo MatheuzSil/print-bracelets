@@ -3,6 +3,11 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
+    "start": "node setup.js",
+    "docker:build": "docker build -t print-bracelets .",
+    "docker:run": "docker run -it --rm --name print-bracelets-system print-bracelets",
+    "docker:start": "npm run docker:build && npm run docker:run",
+    "direct": "node print-bracelets.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
