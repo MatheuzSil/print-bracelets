@@ -4,25 +4,26 @@ Sistema containerizado para impressão automática de pulseiras via RabbitMQ com
 
 ## 🚀 Instalação Rápida
 
-### Windows - Opção 1 (Recomendada)
-Execute no PowerShell como Administrador:
-```powershell
-Set-ExecutionPolicy RemoteSigned -Force; Invoke-WebRequest -Uri "https://raw.githubusercontent.com/MatheuzSil/print-bracelets/main/install-simples.ps1" -OutFile "install.ps1"; .\install.ps1
-```
+> **Nota**: Como este repositório é privado, faça o download/clone primeiro.
 
-### Windows - Opção 2 (Local)
-Se tiver o projeto clonado localmente:
+### Windows - Instalação Local
 ```powershell
-# No diretório do projeto
+# 1. Clone ou baixe o repositório
+git clone https://github.com/MatheuzSil/print-bracelets.git
+cd print-bracelets
+
+# 2. Execute o instalador (como Administrador)
+Set-ExecutionPolicy RemoteSigned -Force
 .\install-simples.ps1
 ```
 
-### Windows - Opção 3 (Manual)
+### Windows - Instalação Manual Rápida
 ```powershell
-# Baixar e instalar Docker Desktop primeiro
-# Depois executar:
-docker pull matheuzsilva/print-bracelets:latest
+# Se você tem Docker instalado, pode executar diretamente:
 docker run -d --name print-bracelets-system --restart unless-stopped --network host -it matheuzsilva/print-bracelets:latest
+
+# Para atualizações automáticas, adicione o Watchtower:
+docker run -d --name watchtower --restart unless-stopped -v "//./pipe/docker_engine://./pipe/docker_engine" -e WATCHTOWER_CLEANUP=true -e WATCHTOWER_POLL_INTERVAL=300 -e WATCHTOWER_LABEL_ENABLE=true containrrr/watchtower:latest --interval 300 --cleanup
 ```
 
 ### Linux
