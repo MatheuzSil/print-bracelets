@@ -1,8 +1,4 @@
-# Script de instalação para Windows Server
-param(
-    [switch]$InstallDocker = $false
-)
-
+# Script de instalação para Windows
 Write-Host "======================================================" -ForegroundColor Green
 Write-Host "  Sistema de Impressão de Pulseiras - Instalação" -ForegroundColor Green  
 Write-Host "======================================================" -ForegroundColor Green
@@ -12,6 +8,7 @@ Write-Host ""
 $DockerUser = "matheuzsilva"
 $ImageName = "print-bracelets"
 $ContainerName = "print-bracelets-system"
+$InstallPath = "C:\PrintBracelets"
 
 Write-Host "Verificando requisitos..." -ForegroundColor Blue
 
@@ -20,27 +17,10 @@ try {
     docker --version | Out-Null
     Write-Host "Docker encontrado!" -ForegroundColor Green
 } catch {
-    if ($InstallDocker) {
-        Write-Host "Instalando Docker Desktop..." -ForegroundColor Yellow
-        
-        # Download Docker Desktop
-        $url = "https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe"
-        $output = "$env:TEMP\DockerInstaller.exe"
-        
-        Write-Host "Baixando Docker Desktop..." -ForegroundColor Yellow
-        Invoke-WebRequest -Uri $url -OutFile $output
-        
-        Write-Host "Executando instalador..." -ForegroundColor Yellow
-        Start-Process -FilePath $output -Wait
-        
-        Write-Host "Docker Desktop instalado! Reinicie o sistema e execute o script novamente." -ForegroundColor Green
-        exit 0
-    } else {
-        Write-Host "Docker não encontrado!" -ForegroundColor Red
-        Write-Host "Execute com -InstallDocker para instalar automaticamente:" -ForegroundColor Yellow
-        Write-Host "  .\install-windows.ps1 -InstallDocker" -ForegroundColor White
-        exit 1
-    }
+    Write-Host "Docker não encontrado!" -ForegroundColor Red
+    Write-Host "Instale o Docker Desktop antes de continuar:" -ForegroundColor Yellow
+    Write-Host "https://www.docker.com/products/docker-desktop/" -ForegroundColor White
+    exit 1
 }
 
 # Verifica se Docker está rodando
@@ -63,6 +43,198 @@ docker rm $ContainerName watchtower 2>$null
 # Puxa imagem mais recente
 Write-Host "Baixando imagem mais recente..." -ForegroundColor Blue
 docker pull "$DockerUser/$ImageName`:latest"
+
+# Cria diretório de instalação
+New-Item -ItemType Directory -Path $InstallPath -Force | Out-Null
+Write-Host "Diretório de instalação criado: $InstallPath" -ForegroundColor Green
+
+# Copiar scripts de desktop (se existirem localmente)
+$DesktopScripts = @(
+    "menu-principal.bat",
+    "configurar.bat",
+    "iniciar.bat", 
+    "parar.bat",
+    "reiniciar.bat",
+    "status.bat",
+    "logs.bat",
+    "desinstalar.bat"
+)
+
+Write-Host "Copiando scripts de desktop..." -ForegroundColor Blue
+foreach ($script in $DesktopScripts) {
+    $scriptPath = "scripts\desktop\$script"
+    if (Test-Path $scriptPath) {
+        Copy-Item $scriptPath "$InstallPath\$script" -Force
+        Write-Host "  ✓ $script" -ForegroundColor Green
+    } else {
+        # Criar scripts básicos se não existirem
+        switch ($script) {
+            "menu-principal.bat" {
+                @"
+@echo off
+title Sistema de Impressao - Menu Principal
+color 0A
+
+:MENU
+cls
+echo.
+echo  ================================================
+echo   Sistema de Impressao de Pulseiras
+echo  ================================================
+echo.
+echo   [1] Configurar Sistema (Primeira vez)
+echo   [2] Ver Status do Sistema
+echo   [3] Ver Logs em Tempo Real  
+echo   [4] Iniciar Sistema
+echo   [5] Parar Sistema
+echo   [6] Reiniciar Sistema
+echo   [7] Desinstalar Sistema
+echo   [8] Sair
+echo.
+echo  ================================================
+echo.
+set /p opcao=Digite sua opcao (1-8): 
+
+if "%opcao%"=="1" goto CONFIGURAR
+if "%opcao%"=="2" goto STATUS  
+if "%opcao%"=="3" goto LOGS
+if "%opcao%"=="4" goto INICIAR
+if "%opcao%"=="5" goto PARAR
+if "%opcao%"=="6" goto REINICIAR
+if "%opcao%"=="7" goto DESINSTALAR
+if "%opcao%"=="8" exit
+goto MENU
+
+:CONFIGURAR
+call "C:\PrintBracelets\configurar.bat"
+pause
+goto MENU
+
+:STATUS
+call "C:\PrintBracelets\status.bat"
+pause
+goto MENU
+
+:LOGS
+call "C:\PrintBracelets\logs.bat"
+goto MENU
+
+:INICIAR
+call "C:\PrintBracelets\iniciar.bat"
+pause
+goto MENU
+
+:PARAR
+call "C:\PrintBracelets\parar.bat"
+pause
+goto MENU
+
+:REINICIAR
+call "C:\PrintBracelets\reiniciar.bat"
+pause
+goto MENU
+
+:DESINSTALAR
+call "C:\PrintBracelets\desinstalar.bat"
+pause
+goto MENU
+"@ | Out-File -FilePath "$InstallPath\$script" -Encoding ASCII
+                Write-Host "  ✓ $script (criado)" -ForegroundColor Yellow
+            }
+            "configurar.bat" {
+                @"
+@echo off
+title Sistema de Impressao - Configurar
+color 0B
+cls
+echo Acessando configuracao do sistema...
+docker exec -it print-bracelets-system node setup.js
+"@ | Out-File -FilePath "$InstallPath\$script" -Encoding ASCII
+                Write-Host "  ✓ $script (criado)" -ForegroundColor Yellow
+            }
+            "iniciar.bat" {
+                @"
+@echo off
+title Sistema de Impressao - Iniciar
+color 0A
+cls
+echo Iniciando sistema de impressao...
+docker start print-bracelets-system watchtower
+echo Sistema iniciado com sucesso!
+"@ | Out-File -FilePath "$InstallPath\$script" -Encoding ASCII
+                Write-Host "  ✓ $script (criado)" -ForegroundColor Yellow
+            }
+            "parar.bat" {
+                @"
+@echo off
+title Sistema de Impressao - Parar
+color 0E
+cls
+echo Parando sistema de impressao...
+docker stop print-bracelets-system watchtower
+echo Sistema parado com sucesso!
+"@ | Out-File -FilePath "$InstallPath\$script" -Encoding ASCII
+                Write-Host "  ✓ $script (criado)" -ForegroundColor Yellow
+            }
+            "status.bat" {
+                @"
+@echo off
+title Sistema de Impressao - Status
+color 0D
+cls
+echo === Status do Sistema ===
+docker ps --filter name=print-bracelets-system --filter name=watchtower
+echo.
+echo === Ultimos logs ===
+docker logs --tail 5 print-bracelets-system
+"@ | Out-File -FilePath "$InstallPath\$script" -Encoding ASCII
+                Write-Host "  ✓ $script (criado)" -ForegroundColor Yellow
+            }
+            "logs.bat" {
+                @"
+@echo off
+title Sistema de Impressao - Logs
+color 0F
+cls
+echo === Logs em Tempo Real ===
+echo Pressione Ctrl+C para sair
+docker logs -f print-bracelets-system
+"@ | Out-File -FilePath "$InstallPath\$script" -Encoding ASCII
+                Write-Host "  ✓ $script (criado)" -ForegroundColor Yellow
+            }
+            "reiniciar.bat" {
+                @"
+@echo off
+title Sistema de Impressao - Reiniciar
+color 0D
+cls
+echo Reiniciando sistema de impressao...
+docker restart print-bracelets-system watchtower
+echo Sistema reiniciado com sucesso!
+"@ | Out-File -FilePath "$InstallPath\$script" -Encoding ASCII
+                Write-Host "  ✓ $script (criado)" -ForegroundColor Yellow
+            }
+            "desinstalar.bat" {
+                @"
+@echo off
+title Sistema de Impressao - Desinstalar
+color 0C
+cls
+echo ATENCAO: Esta operacao remove completamente o sistema!
+set /p confirmacao="Tem certeza? (s/N): "
+if /i "%confirmacao%" neq "s" exit /b 0
+echo Removendo sistema...
+docker stop print-bracelets-system watchtower 2>nul
+docker rm print-bracelets-system watchtower 2>nul
+docker rmi matheuzsilva/print-bracelets:latest 2>nul
+docker system prune -f 2>nul
+echo Sistema removido com sucesso!
+"@ | Out-File -FilePath "$InstallPath\$script" -Encoding ASCII
+                Write-Host "  ✓ $script (criado)" -ForegroundColor Yellow
+            }
+        }
+    }
+}
 
 # Cria diretório para logs
 $LogDir = "C:\ProgramData\PrintBracelets\logs"
@@ -93,112 +265,39 @@ docker run -d `
     containrrr/watchtower:latest `
     --interval 300 --cleanup
 
-# Cria scripts de controle
-Write-Host "Criando scripts de controle..." -ForegroundColor Blue
+# Criar atalho na área de trabalho
+Write-Host "Criando atalho na área de trabalho..." -ForegroundColor Blue
 
-$ScriptDir = "C:\PrintBracelets"
-$DesktopPath = [Environment]::GetFolderPath("Desktop")
-$DesktopScriptsDir = "$DesktopPath\Sistema Impressao"
+$DesktopPath = [Environment]::GetFolderPath('Desktop')
+$ShortcutPath = "$DesktopPath\Sistema de Impressao.lnk"
 
-New-Item -ItemType Directory -Path $ScriptDir -Force | Out-Null
-New-Item -ItemType Directory -Path $DesktopScriptsDir -Force | Out-Null
-
-# Baixar scripts da área de trabalho do GitHub
-$scriptsToDownload = @(
-    "Configurar Sistema.bat",
-    "Status do Sistema.bat", 
-    "Ver Logs.bat",
-    "Iniciar Sistema.bat",
-    "Parar Sistema.bat",
-    "Reiniciar Sistema.bat"
-)
-
-foreach ($script in $scriptsToDownload) {
-    $url = "https://raw.githubusercontent.com/MatheuzSil/print-bracelets/main/scripts/desktop/$($script -replace ' ', '%20')"
-    $output = "$DesktopScriptsDir\$script"
-    
-    try {
-        Invoke-WebRequest -Uri $url -OutFile $output
-        Write-Host "  ✓ $script" -ForegroundColor Green
-    } catch {
-        Write-Host "  ✗ Erro ao baixar $script" -ForegroundColor Red
-    }
-}
-
-# Script de logs (compatibilidade)
-@"
-@echo off
-title Print Bracelets - Logs
-echo === Logs do Sistema de Impressao ===
-docker logs -f print-bracelets-system
-pause
-"@ | Out-File -FilePath "$ScriptDir\logs.bat" -Encoding ASCII
-
-# Script de restart  
-@"
-@echo off
-title Print Bracelets - Restart
-echo Reiniciando sistema de impressao...
-docker restart print-bracelets-system
-echo Sistema reiniciado!
-pause
-"@ | Out-File -FilePath "$ScriptDir\restart.bat" -Encoding ASCII
-
-# Script de stop
-@"
-@echo off
-title Print Bracelets - Stop
-echo Parando sistema de impressao...
-docker stop print-bracelets-system watchtower
-echo Sistema parado!
-pause
-"@ | Out-File -FilePath "$ScriptDir\stop.bat" -Encoding ASCII
-
-# Script de start
-@"
-@echo off
-title Print Bracelets - Start  
-echo Iniciando sistema de impressao...
-docker start print-bracelets-system watchtower
-echo Sistema iniciado!
-pause
-"@ | Out-File -FilePath "$ScriptDir\start.bat" -Encoding ASCII
-
-# Script de status
-@"
-@echo off
-title Print Bracelets - Status
-echo === Status do Sistema ===
-docker ps --filter name=print-bracelets-system --filter name=watchtower
-echo.
-echo === Ultimas atualizacoes ===
-docker logs --tail 10 watchtower
-pause
-"@ | Out-File -FilePath "$ScriptDir\status.bat" -Encoding ASCII
+$WshShell = New-Object -ComObject WScript.Shell
+$Shortcut = $WshShell.CreateShortcut($ShortcutPath)
+$Shortcut.TargetPath = "$InstallPath\menu-principal.bat"
+$Shortcut.WorkingDirectory = $InstallPath
+$Shortcut.Description = "Sistema de Impressao de Pulseiras"
+$Shortcut.IconLocation = "shell32.dll,138"  # Ícone de impressora
+$Shortcut.Save()
 
 Write-Host ""
-Write-Host "Instalação concluída com sucesso!" -ForegroundColor Green
+Write-Host "✅ Instalação concluída com sucesso!" -ForegroundColor Green
 Write-Host ""
-Write-Host "📁 Scripts criados na área de trabalho:" -ForegroundColor Blue
-Write-Host "   $DesktopScriptsDir\" -ForegroundColor White
+Write-Host "🖱️  Atalho criado na área de trabalho:" -ForegroundColor Blue
+Write-Host "   'Sistema de Impressao.lnk'" -ForegroundColor White
 Write-Host ""
-Write-Host "🖱️  Scripts disponíveis (duplo clique para usar):" -ForegroundColor Blue
-Write-Host "  • Configurar Sistema.bat  - Configurar impressora" -ForegroundColor White
-Write-Host "  • Status do Sistema.bat   - Ver status atual" -ForegroundColor White
-Write-Host "  • Ver Logs.bat           - Ver atividade em tempo real" -ForegroundColor White
-Write-Host "  • Iniciar Sistema.bat    - Iniciar sistema" -ForegroundColor White
-Write-Host "  • Parar Sistema.bat      - Parar sistema" -ForegroundColor White
-Write-Host "  • Reiniciar Sistema.bat  - Reiniciar sistema" -ForegroundColor White
+Write-Host "📁 Scripts instalados em:" -ForegroundColor Blue
+Write-Host "   $InstallPath\" -ForegroundColor White
 Write-Host ""
-Write-Host "📋 Scripts de compatibilidade em: C:\PrintBracelets\" -ForegroundColor Blue
+Write-Host "🔧 Para começar a usar:" -ForegroundColor Blue
+Write-Host "   1. Clique duplo no ícone da área de trabalho" -ForegroundColor White
+Write-Host "   2. Escolha 'Configurar Sistema (Primeira vez)'" -ForegroundColor White
+Write-Host "   3. Configure o ID do totem e IP da impressora" -ForegroundColor White
+Write-Host "   4. O sistema estará pronto!" -ForegroundColor White
 Write-Host ""
-Write-Host "Sistema configurado para:" -ForegroundColor Blue
-Write-Host "  • Iniciar automaticamente com o Docker" -ForegroundColor White
-Write-Host "  • Atualizar automaticamente a cada 5 minutos" -ForegroundColor White
-Write-Host "  • Reiniciar automaticamente em caso de falha" -ForegroundColor White
-Write-Host "  • Logs salvos em C:\ProgramData\PrintBracelets\logs" -ForegroundColor White
+Write-Host "⚙️  Sistema configurado para:" -ForegroundColor Blue
+Write-Host "   • Iniciar automaticamente com o Docker" -ForegroundColor White
+Write-Host "   • Atualizar automaticamente a cada 5 minutos" -ForegroundColor White
+Write-Host "   • Reiniciar automaticamente em caso de falha" -ForegroundColor White
+Write-Host "   • Logs salvos em $LogDir" -ForegroundColor White
 Write-Host ""
-Write-Host "Para interagir com o sistema (configurar impressora):" -ForegroundColor Yellow
-Write-Host "  docker exec -it print-bracelets-system cmd" -ForegroundColor White
-Write-Host ""
-Write-Host "Sistema pronto para uso!" -ForegroundColor Green
+Write-Host "🎉 Sistema pronto para uso!" -ForegroundColor Green
