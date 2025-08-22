@@ -1,0 +1,28 @@
+services:
+  print-bracelets:
+    build: ../../  # Aponta para raiz do projeto onde está o Dockerfile
+    container_name: print-bracelets-system
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    network_mode: host
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    environment:
+      - NODE_ENV=production
+    volumes:
+      - ./logs:/app/logs  # Para logs persistentes (opcional)
+    
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_POLL_INTERVAL=300  # Verifica a cada 5 minutos
+      - WATCHTOWER_LABEL_ENABLE=true  # Apenas containers com label
+      - WATCHTOWER_INCLUDE_STOPPED=true
+      - WATCHTOWER_REVIVE_STOPPED=true
+    command: --interval 300 --cleanup

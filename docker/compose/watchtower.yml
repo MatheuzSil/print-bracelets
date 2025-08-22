@@ -1,0 +1,15 @@
+services:
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_POLL_INTERVAL=300  # 5 minutos
+      - WATCHTOWER_INCLUDE_STOPPED=true
+      - WATCHTOWER_REVIVE_STOPPED=true
+      - WATCHTOWER_NOTIFICATIONS=slack  # Opcional
+      # - WATCHTOWER_NOTIFICATION_SLACK_HOOK_URL=sua-webhook-url
+    command: --interval 300 --cleanup print-bracelets-system

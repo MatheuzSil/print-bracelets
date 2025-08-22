@@ -1,77 +1,153 @@
-# Sistema de Impressão de Pulseiras - Docker
+# 🖨️ Sistema de Impressão de Pulseiras
 
-Este sistema permite imprimir pulseiras através de mensagens RabbitMQ em um ambiente containerizado.
+Sistema containerizado para impressão automática de pulseiras via RabbitMQ com atualizações automáticas via Watchtower.
 
-## Como usar
+## 🚀 Instalação Rápida
 
-### Opção 1: Docker Compose (Recomendado)
+### Windows
+```powershell
+Set-ExecutionPolicy RemoteSigned -Force; Invoke-WebRequest -Uri "https://raw.githubusercontent.com/MatheuzSil/print-bracelets/main/scripts/installation/install-windows.ps1" -OutFile "install.ps1"; .\install.ps1 -InstallDocker
+```
 
+### Linux
 ```bash
-docker-compose up --build
+curl -fsSL https://raw.githubusercontent.com/MatheuzSil/print-bracelets/main/scripts/installation/install.sh | bash
 ```
 
-### Opção 2: Docker direto
+## 📁 Estrutura do Projeto
 
+```
+📁 src/                     # Código fonte
+├── print-bracelets.js      # Sistema principal
+├── setup.js               # Interface de configuração  
+├── reset-printer.js        # Reset da impressora
+└── test-*.js              # Arquivos de teste
+
+� scripts/                 # Scripts de automação
+├── installation/           # Scripts de instalação
+│   ├── install.sh         # Instalação Linux
+│   └── install-windows.ps1 # Instalação Windows
+├── desktop/               # Scripts para área de trabalho
+│   ├── Configurar Sistema.bat
+│   ├── Status do Sistema.bat  
+│   ├── Ver Logs.bat
+│   ├── Iniciar Sistema.bat
+│   ├── Parar Sistema.bat
+│   └── Reiniciar Sistema.bat
+└── deployment/            # Scripts de deploy
+    ├── deploy.sh          # Deploy Linux
+    └── deploy.ps1         # Deploy Windows
+
+📁 docker/                  # Configurações Docker
+└── compose/               # Arquivos Docker Compose
+    ├── docker-compose.yml     # Desenvolvimento
+    ├── docker-compose.prod.yml # Produção alternativa  
+    ├── production.yml         # Produção principal
+    └── watchtower.yml         # Apenas Watchtower
+
+📁 docs/                    # Documentação
+├── INSTALACAO.md          # Manual completo
+└── INSTALACAO-RAPIDA.md   # Guia rápido
+
+📁 Arquivos raiz
+├── dockerfile             # Imagem Docker
+├── package.json          # Dependências Node.js
+├── layout.tspl           # Template de impressão
+├── Makefile             # Comandos make
+└── start.*              # Scripts de inicialização
+```
+
+## 🎯 Uso Após Instalação
+
+### Windows - Scripts na Área de Trabalho
+Após a instalação, encontre na área de trabalho a pasta **"Sistema Impressao"** com:
+
+- 🔧 **Configurar Sistema.bat** - Configurar impressora (primeira vez)
+- 📊 **Status do Sistema.bat** - Ver status atual  
+- 📋 **Ver Logs.bat** - Monitorar atividade
+- ▶️ **Iniciar Sistema.bat** - Iniciar serviço
+- ⏸️ **Parar Sistema.bat** - Parar serviço
+- 🔄 **Reiniciar Sistema.bat** - Reiniciar serviço
+
+### Linux - Comandos do Terminal
 ```bash
-# Build da imagem
-docker build -t print-bracelets .
-
-# Executar o container
-docker run -it print-bracelets
+print-bracelets-status    # Ver status
+print-bracelets-logs      # Ver logs em tempo real  
+print-bracelets-restart   # Reiniciar sistema
+print-bracelets-start     # Iniciar sistema
+print-bracelets-stop      # Parar sistema
 ```
 
-## Configuração
+## ⚙️ Configuração
 
-Ao iniciar o container, você será solicitado a informar:
+Na primeira execução, o sistema perguntará:
+- **Totem ID**: Identificador único do totem
+- **IP da Impressora**: Endereço IP na rede local
+- **Machine ID**: Identificador da máquina
 
-1. **Totem ID**: Identificador único do totem
-2. **IP da Impressora**: Endereço IP da impressora na rede
-3. **Machine ID**: Identificador único da máquina
+Valores automáticos:
+- **Rabbit URL**: Configurado automaticamente
+- **Porta da Impressora**: 9100 (padrão)
 
-Os seguintes valores são configurados automaticamente:
-- **Rabbit URL**: `amqps://heqbymsv:2twbq9gst2Mo8GpjeRZ41Tdw46zu4Ygj@jackal.rmq.cloudamqp.com/heqbymsv`
-- **Porta da Impressora**: `9100`
+## � Atualizações Automáticas
 
-## Exemplo de uso
+O **Watchtower** verifica atualizações automaticamente a cada 5 minutos:
+- ✅ Detecta novas versões no Docker Hub
+- ✅ Baixa e atualiza automaticamente
+- ✅ Reinicia o sistema com nova versão  
+- ✅ Remove versões antigas
 
-```
-=== Configuração do Sistema de Impressão ===
+## �️ Desenvolvimento
 
-Digite o Totem ID: TOTEM001
-Digite o IP da Impressora: 192.168.1.100
-Digite o Machine ID: MACHINE001
-
-=== Configurações ===
-Totem ID: TOTEM001
-IP da Impressora: 192.168.1.100
-Machine ID: MACHINE001
-Rabbit URL: amqps://heqbymsv:2twbq9gst2Mo8GpjeRZ41Tdw46zu4Ygj@jackal.rmq.cloudamqp.com/heqbymsv
-Porta da Impressora: 9100
-========================
-
-Confirma as configurações? (s/n): s
-Iniciando sistema...
-```
-
-## Parar o container
-
-Para parar o sistema, use `Ctrl+C` no terminal ou:
-
+### Executar localmente
 ```bash
-docker-compose down
+# Desenvolvimento
+docker-compose -f docker/compose/docker-compose.yml up --build
+
+# Produção local
+docker-compose -f docker/compose/production.yml up -d
 ```
 
-## Logs
-
-Para ver os logs do container:
-
+### Fazer deploy
 ```bash
-docker-compose logs -f
+# Windows
+.\scripts\deployment\deploy.ps1
+
+# Linux  
+./scripts/deployment/deploy.sh
+
+# Make
+make deploy
 ```
 
-## Requisitos
+## 📚 Documentação
 
-- Docker
-- Docker Compose
-- Impressora conectada à rede local
-- Acesso à internet para conexão com RabbitMQ
+- 📖 [Manual Completo](docs/INSTALACAO.md)
+- ⚡ [Instalação Rápida](docs/INSTALACAO-RAPIDA.md)
+
+## 🆘 Suporte
+
+### Verificar Status
+```bash
+docker ps --filter name=print-bracelets
+docker logs print-bracelets-system
+```
+
+### Troubleshooting Comum
+- **Container não inicia**: Verificar logs com scripts da área de trabalho
+- **Impressora não responde**: Verificar IP e conectividade de rede
+- **Atualizações falham**: Verificar logs do Watchtower
+
+---
+
+## 🏗️ Tecnologias
+
+- **Node.js** - Runtime
+- **Docker** - Containerização  
+- **RabbitMQ** - Mensageria
+- **Watchtower** - Atualizações automáticas
+- **TSPL** - Linguagem da impressora
+
+---
+
+**Sistema pronto para produção com instalação automática e interface amigável!** 🎉
