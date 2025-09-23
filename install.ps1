@@ -1,4 +1,136 @@
-# Script de Instalação Simplificada - Sistema de Impressão de Pulseiras
+# Criar script menu-principal.bat
+$menuScript = @'
+@echo off
+color 0A
+title Sistema de Impressao - Menu Principal
+:MENU
+cls
+echo.
+echo  ================================================
+echo   Sistema de Impressao de Pulseiras
+echo  ================================================
+echo.
+echo   [1] Configurar e Iniciar Sistema (Primeira vez)
+echo   [2] Ver Status do Sistema
+echo   [3] Ver Logs em Tempo Real  
+echo   [4] Iniciar Sistema (se parado)
+echo   [5] Parar Sistema
+echo   [6] Reiniciar Sistema
+echo   [7] Desinstalar Sistema
+echo   [8] Sair
+echo.
+echo  ================================================
+echo.
+set /p opcao=Digite sua opcao (1-8): 
+if "%opcao%"=="1" goto CONFIGURAR
+if "%opcao%"=="2" goto STATUS  
+if "%opcao%"=="3" goto LOGS
+if "%opcao%"=="4" goto INICIAR
+if "%opcao%"=="5" goto PARAR
+if "%opcao%"=="6" goto REINICIAR
+if "%opcao%"=="7" goto DESINSTALAR
+if "%opcao%"=="8" exit
+goto MENU
+:CONFIGURAR
+docker exec -it print-bracelets-system node setup.js
+pause
+goto MENU
+:STATUS
+docker ps --filter name=print-bracelets-system --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+docker logs --tail 5 print-bracelets-system 2>nul
+pause
+goto MENU
+:LOGS
+docker logs -f print-bracelets-system
+goto MENU
+:INICIAR
+docker start print-bracelets-system
+pause
+goto MENU
+:PARAR
+docker stop print-bracelets-system
+pause
+goto MENU
+:REINICIAR
+docker restart print-bracelets-system
+pause
+goto MENU
+:DESINSTALAR
+docker stop print-bracelets-system 2>nul
+docker rm print-bracelets-system 2>nul
+docker rmi matheuzsilva/print-bracelets:latest 2>nul
+docker system prune -f 2>nul
+echo Sistema removido!
+pause
+exit
+'@
+$menuScript | Out-File -FilePath \"$InstallPath\\menu-principal.bat\" -Encoding ASCII# Criar script menu-principal.bat
+$menuScript = @'
+@echo off
+color 0A
+title Sistema de Impressao - Menu Principal
+:MENU
+cls
+echo.
+echo  ================================================
+echo   Sistema de Impressao de Pulseiras
+echo  ================================================
+echo.
+echo   [1] Configurar e Iniciar Sistema (Primeira vez)
+echo   [2] Ver Status do Sistema
+echo   [3] Ver Logs em Tempo Real  
+echo   [4] Iniciar Sistema (se parado)
+echo   [5] Parar Sistema
+echo   [6] Reiniciar Sistema
+echo   [7] Desinstalar Sistema
+echo   [8] Sair
+echo.
+echo  ================================================
+echo.
+set /p opcao=Digite sua opcao (1-8): 
+if "%opcao%"=="1" goto CONFIGURAR
+if "%opcao%"=="2" goto STATUS  
+if "%opcao%"=="3" goto LOGS
+if "%opcao%"=="4" goto INICIAR
+if "%opcao%"=="5" goto PARAR
+if "%opcao%"=="6" goto REINICIAR
+if "%opcao%"=="7" goto DESINSTALAR
+if "%opcao%"=="8" exit
+goto MENU
+:CONFIGURAR
+docker exec -it print-bracelets-system node setup.js
+pause
+goto MENU
+:STATUS
+docker ps --filter name=print-bracelets-system --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+docker logs --tail 5 print-bracelets-system 2>nul
+pause
+goto MENU
+:LOGS
+docker logs -f print-bracelets-system
+goto MENU
+:INICIAR
+docker start print-bracelets-system
+pause
+goto MENU
+:PARAR
+docker stop print-bracelets-system
+pause
+goto MENU
+:REINICIAR
+docker restart print-bracelets-system
+pause
+goto MENU
+:DESINSTALAR
+docker stop print-bracelets-system 2>nul
+docker rm print-bracelets-system 2>nul
+docker rmi matheuzsilva/print-bracelets:latest 2>nul
+docker system prune -f 2>nul
+echo Sistema removido!
+pause
+exit
+'@
+$menuScript | Out-File -FilePath \"$InstallPath\\menu-principal.bat\" -Encoding ASCII# Script de Instalação Simplificada - Sistema de Impressão de Pulseiras
 Write-Host "======================================================" -ForegroundColor Green
 Write-Host "  Sistema de Impressão de Pulseiras - Instalação" -ForegroundColor Green  
 Write-Host "======================================================" -ForegroundColor Green
