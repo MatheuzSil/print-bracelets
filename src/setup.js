@@ -25,6 +25,16 @@ async function setup() {
   const configPath = path.join('/app/config', 'config.json');
   let config = {};
 
+  // Verifica se a pasta de config existe e é acessível
+  try {
+    if (!fs.existsSync('/app/config')) {
+      console.log('Pasta de configuração não encontrada. Criando...');
+      fs.mkdirSync('/app/config', { recursive: true });
+    }
+  } catch (error) {
+    console.log('Aviso: Não foi possível acessar a pasta de configuração.');
+  }
+
   // Tenta carregar configuração existente
   if (fs.existsSync(configPath)) {
     try {
@@ -77,7 +87,13 @@ async function setup() {
 
     // Salva configuração
     config = { totemId, printerIp, machineId };
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf8');
+    try {
+      fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf8');
+      console.log(`✓ Configuração salva em: ${configPath}`);
+    } catch (error) {
+      console.log(`⚠ Não foi possível salvar configuração: ${error.message}`);
+      console.log('As configurações serão usadas apenas nesta sessão.');
+    }
 
     rl.close();
 

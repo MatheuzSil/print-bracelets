@@ -288,13 +288,17 @@ $Shortcut.Save()
 # Iniciar sistema
 Write-Host "Iniciando sistema..." -ForegroundColor Blue
 
+# Criar pasta de configuração
+$ConfigPath = "$InstallPath\config"
+New-Item -ItemType Directory -Path $ConfigPath -Force | Out-Null
+
 # Iniciar sistema principal
 docker run -d `
     --name $ContainerName `
     --restart unless-stopped `
     --network host `
     -it `
-    -v "${InstallPath}:/app/config" `
+    -v "${ConfigPath}:/app/config" `
     matheuzsilva/print-bracelets:latest
 
 Write-Host ""
