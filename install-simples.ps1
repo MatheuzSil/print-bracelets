@@ -182,21 +182,26 @@ echo ========================================
 echo   Iniciando Sistema
 echo ========================================
 echo.
-echo Verificando se sistema ja esta rodando...
+echo Verificando se container existe...
+docker ps -aq --filter name=print-bracelets-system | findstr . >nul
+if errorlevel 1 (
+    echo Container nao existe. Execute a instalacao primeiro.
+    exit /b 1
+)
+
+echo Verificando se container esta rodando...
 docker ps -q --filter name=print-bracelets-system | findstr . >nul
 if errorlevel 1 (
-    echo Iniciando sistema de impressao...
-    docker start print-bracelets-system 2>nul
-    if errorlevel 1 (
-        echo Container nao existe. Execute a instalacao primeiro.
-    ) else (
-        echo Sistema iniciado!
-    )
-) else (
-    echo Sistema ja esta rodando!
+    echo Iniciando container...
+    docker start print-bracelets-system >nul 2>&1
 )
+
 echo.
-echo Sistema pronto para uso!
+echo Acessando sistema de configuracao...
+echo.
+docker exec -it print-bracelets-system node /app/setup.js
+echo.
+echo Sistema finalizado!
 "@ | Out-File -FilePath "$InstallPath\iniciar.bat" -Encoding ASCII
 
 # Script de Parar
