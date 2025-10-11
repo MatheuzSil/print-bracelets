@@ -21,8 +21,8 @@ function askQuestion(question) {
 async function setup() {
   console.log('=== Configuração do Sistema de Impressão ===\n');
 
-  // Caminho do arquivo de configuração
-  const configPath = path.join(__dirname, 'config.json');
+  // Caminho do arquivo de configuração (mapeado para pasta do PC)
+  const configPath = path.join('/app/config', 'config.json');
   let config = {};
 
   // Tenta carregar configuração existente

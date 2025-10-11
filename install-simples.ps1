@@ -294,19 +294,8 @@ docker run -d `
     --restart unless-stopped `
     --network host `
     -it `
-    --label "com.centurylinklabs.watchtower.enable=true" `
+    -v "${InstallPath}:/app/config" `
     matheuzsilva/print-bracelets:latest
-
-# Iniciar Watchtower
-docker run -d `
-    --name watchtower `
-    --restart unless-stopped `
-    -v "//./pipe/docker_engine://./pipe/docker_engine" `
-    -e WATCHTOWER_CLEANUP=true `
-    -e WATCHTOWER_POLL_INTERVAL=300 `
-    -e WATCHTOWER_LABEL_ENABLE=true `
-    containrrr/watchtower:latest `
-    --interval 300 --cleanup
 
 Write-Host ""
 Write-Host "✅ INSTALAÇÃO CONCLUÍDA!" -ForegroundColor Green
