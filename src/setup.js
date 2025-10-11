@@ -46,9 +46,15 @@ async function setup() {
   }
 
   try {
-    const totemId = await askQuestion(`Digite o Totem ID${config.totemId ? ` [${config.totemId}]` : ''}: `) || config.totemId || '';
-    const printerIp = await askQuestion(`Digite o IP da Impressora${config.printerIp ? ` [${config.printerIp}]` : ''}: `) || config.printerIp || '';
-    const machineId = await askQuestion(`Digite o Machine ID${config.machineId ? ` [${config.machineId}]` : ''}: `) || config.machineId || '';
+    console.log('');
+    const totemIdInput = await askQuestion(`Digite o Totem ID${config.totemId ? ` [${config.totemId}]` : ''}: `);
+    const totemId = totemIdInput.trim() || config.totemId || '';
+    
+    const printerIpInput = await askQuestion(`Digite o IP da Impressora${config.printerIp ? ` [${config.printerIp}]` : ''}: `);
+    const printerIp = printerIpInput.trim() || config.printerIp || '';
+    
+    const machineIdInput = await askQuestion(`Digite o Machine ID${config.machineId ? ` [${config.machineId}]` : ''}: `);
+    const machineId = machineIdInput.trim() || config.machineId || '';
 
     // Valores padrão
     const rabbitUrl = "amqps://heqbymsv:2twbq9gst2Mo8GpjeRZ41Tdw46zu4Ygj@jackal.rmq.cloudamqp.com/heqbymsv";

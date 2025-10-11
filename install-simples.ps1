@@ -63,7 +63,7 @@ echo  ================================================
 echo   Sistema de Impressao de Pulseiras
 echo  ================================================
 echo.
-echo   [1] Configurar Sistema (Primeira vez)
+echo   [1] Configurar Sistema
 echo   [2] Ver Status do Sistema
 echo   [3] Ver Logs em Tempo Real  
 echo   [4] Iniciar Sistema
@@ -148,7 +148,7 @@ echo ========================================
 echo   Status do Sistema
 echo ========================================
 echo.
-docker ps --filter name=print-bracelets-system --filter name=watchtower --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+docker ps --filter name=print-bracelets-system --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 echo.
 echo ========================================
 echo   Ultimos 5 logs do sistema:
@@ -186,21 +186,14 @@ echo Verificando se sistema ja esta rodando...
 docker ps -q --filter name=print-bracelets-system | findstr . >nul
 if errorlevel 1 (
     echo Iniciando sistema de impressao...
-    docker run -d --name print-bracelets-system --restart unless-stopped --network host -it --label "com.centurylinklabs.watchtower.enable=true" matheuzsilva/print-bracelets:latest
-    echo Sistema iniciado!
+    docker start print-bracelets-system 2>nul
+    if errorlevel 1 (
+        echo Container nao existe. Execute a instalacao primeiro.
+    ) else (
+        echo Sistema iniciado!
+    )
 ) else (
     echo Sistema ja esta rodando!
-)
-
-echo.
-echo Verificando Watchtower...
-docker ps -q --filter name=watchtower | findstr . >nul
-if errorlevel 1 (
-    echo Iniciando Watchtower...
-    docker run -d --name watchtower --restart unless-stopped -v "//./pipe/docker_engine://./pipe/docker_engine" -e WATCHTOWER_CLEANUP=true -e WATCHTOWER_POLL_INTERVAL=300 -e WATCHTOWER_LABEL_ENABLE=true containrrr/watchtower:latest --interval 300 --cleanup
-    echo Watchtower iniciado!
-) else (
-    echo Watchtower ja esta rodando!
 )
 echo.
 echo Sistema pronto para uso!
@@ -223,7 +216,7 @@ if /i "%confirmacao%" neq "s" (
 )
 echo.
 echo Parando sistema de impressao...
-docker stop print-bracelets-system watchtower 2>nul
+docker stop print-bracelets-system 2>nul
 echo Sistema parado!
 "@ | Out-File -FilePath "$InstallPath\parar.bat" -Encoding ASCII
 
@@ -238,7 +231,7 @@ echo   Reiniciando Sistema
 echo ========================================
 echo.
 echo Reiniciando sistema de impressao...
-docker restart print-bracelets-system watchtower 2>nul
+docker restart print-bracelets-system 2>nul
 echo Sistema reiniciado!
 "@ | Out-File -FilePath "$InstallPath\reiniciar.bat" -Encoding ASCII
 
@@ -264,9 +257,9 @@ if /i "%confirmacao%" neq "s" (
 )
 echo.
 echo Removendo sistema...
-docker stop print-bracelets-system watchtower 2>nul
-docker rm print-bracelets-system watchtower 2>nul  
-docker rmi matheuzsilva/print-bracelets:latest containrrr/watchtower:latest 2>nul
+docker stop print-bracelets-system 2>nul
+docker rm print-bracelets-system 2>nul  
+docker rmi matheuzsilva/print-bracelets:latest 2>nul
 docker system prune -f 2>nul
 echo.
 echo Sistema removido com sucesso!
