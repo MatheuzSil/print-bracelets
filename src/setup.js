@@ -4,6 +4,16 @@ const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
+// ========================================
+// CONFIGURAÇÕES FIXAS DO TOTEM
+// ========================================
+const TOTEM_CONFIG = {
+  totemId: "TOTEM_01",          // Altere aqui para cada totem
+  printerIp: "192.168.1.100",   // Altere aqui para cada totem  
+  machineId: "MACHINE_01"       // Altere aqui para cada totem
+};
+// ========================================
+
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout
@@ -19,7 +29,35 @@ function askQuestion(question) {
 
 
 async function setup() {
-  console.log('=== Configuração do Sistema de Impressão ===\n');
+  console.log('=== Sistema de Impressão de Pulseiras ===\n');
+  
+  // Usa configurações fixas definidas no topo do arquivo
+  const totemConfig = TOTEM_CONFIG;
+
+  console.log('Configurações do Totem:');
+  console.log(`Totem ID: ${totemConfig.totemId}`);
+  console.log(`IP da Impressora: ${totemConfig.printerIp}`);
+  console.log(`Machine ID: ${totemConfig.machineId}`);
+  console.log('');
+
+  try {
+    const confirm = await askQuestion('Iniciar sistema com essas configurações? (s/n): ');
+
+    if (confirm.toLowerCase() !== 's' && confirm.toLowerCase() !== 'sim') {
+      console.log('Sistema não iniciado.');
+      process.exit(0);
+    }
+
+    rl.close();
+    startSystem(totemConfig);
+    return;
+  } catch (error) {
+    console.error('Erro durante a configuração:', error);
+    rl.close();
+    process.exit(1);
+  }
+
+  // Código antigo comentado para referência
 
   // Caminho do arquivo de configuração (mapeado para pasta do PC)
   const configPath = path.join('/app/config', 'config.json');
