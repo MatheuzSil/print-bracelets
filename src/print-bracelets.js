@@ -1,16 +1,20 @@
-// npm i iconv-lite
 const fs = require('fs');
 const amqp = require('amqplib');
 const net = require('net');
-const iconv = require('iconv-lite');
 
 const totemId = "1be6a224-83b7-4072-92c0-11b347b20f16";
 const printerIp = "192.168.123.40";
 const printerPort = 9100;
-const rabbitUrl = "amqps://heqbymsv:...@jackal.rmq.cloudamqp.com/heqbymsv";
+const rabbitUrl = "amqps://heqbymsv:2twbq9gst2Mo8GpjeRZ41Tdw46zu4Ygj@jackal.rmq.cloudamqp.com/heqbymsv";
+const machineId = "totem";
 
-if (!totemId || !printerIp) {
-  console.error("Erro: TOTEM_ID ou PRINTER_IP não definidos");
+if (!totemId) {
+  console.error("Erro: TOTEM_ID não definido");
+  process.exit(1);
+}
+
+if (!printerIp) {
+  console.error("Erro: PRINTER_IP não definido");
   process.exit(1);
 }
 
@@ -28,18 +32,22 @@ if (!totemId || !printerIp) {
     channel.consume(queueName, (msg) => {
       if (msg !== null) {
         const payload = JSON.parse(msg.content.toString());
-        const children = payload.children.map(child => ({
-          Id: child.id,
-          name: child.name,
-          birthDate: child.birthDate,
-          class: child.class,
-        }));
-        const parent = payload.parentName || '';
-        const formatedParentName = parent.slice(0, 17) + (parent.length > 17 ? '...' : '');
+        const children = payload.children.map(child => {
+          return {
+            Id: child.id,
+            name: child.name,
+            birthDate: child.birthDate,
+            class: child.class,
+          };
+        });
+        const parent = payload.parentName;
+        const formatedParentName =  parent.slice(0, 17) + '...';
         console.log("PAYLOAD", payload);
-        console.log("responsável (trim):", formatedParentName);
+        console.log("children parent:", formatedParentName);
+        console.log("mensagem recebida", payload);
         console.log(`Imprimindo ${children.length} pulseira(s)`);
 
+        // Função para imprimir uma pulseira por vez (sequencial)
         function printNext(index) {
           if (index >= children.length) {
             console.log('Todas as pulseiras foram impressas');
@@ -49,40 +57,26 @@ if (!totemId || !printerIp) {
 
           const child = children[index];
           console.log(`Imprimindo pulseira ${index + 1} para: ${child.name}`);
-
-          // Lê o arquivo de layout (assume que layout.tspl tem SET CODEPAGE 1252)
+          
+          // Lê o arquivo de layout
           let tspl = fs.readFileSync('layout.tspl', 'utf8');
+          const Id = Math.floor(10000 + Math.random() * 90000).toString().slice(0, 3);
 
-          // Gera ID (exemplo)
-          const Id = Math.floor(10000 + Math.random() * 90000).toString();
-
-          // Substitui placeholders
+          // Substitui os placeholders pelos valores variáveis
           tspl = tspl
-            .replace(/{ID}/g, Id)
-            .replace(/{NOME}/g, child.name)
-            .replace(/{CLASSE}/g, child.class)
-            .replace(/{DATA}/g, child.birthDate)
-            .replace(/{RESPONSAVEL}/g, formatedParentName)
-            .replace(/{QRCODE_DATA}/g, `https://flechakids.space/child/${child.Id}`);
+            .replace('{ID}', Id)
+            .replace('{NOME}', child.name)
+            .replace('{CLASSE}', child.class)
+            .replace('{DATA}', child.birthDate)
+            .replace('{RESPONSAVEL}', parent)
+            .replace('{QRCODE_DATA}', `https://flechakids.space/child/${child.Id}`);
 
-          // Converte para CP1252 (win1252)
-          const buffer = iconv.encode(tspl, 'win1252');
-
-          // Conecta à impressora e envia buffer
+          // Conecta à impressora
           const client = new net.Socket();
-          client.setTimeout(15000); // opcional: timeout
           client.connect(printerPort, printerIp, () => {
             console.log(`Conectado à impressora para ${child.name}`);
-            client.write(buffer, (err) => {
-              if (err) {
-                console.error(`Erro ao enviar dados para ${child.name}:`, err);
-                client.destroy();
-                // continua para próxima
-                setTimeout(() => printNext(index + 1), 2000);
-                return;
-              }
+            client.write(tspl, 'utf8', () => {
               console.log(`Comando enviado para ${child.name}`);
-              // esperar fechar automaticamente ou encerrar conexão
               client.end();
             });
           });
@@ -90,26 +84,24 @@ if (!totemId || !printerIp) {
           client.on('error', (err) => {
             console.error(`Erro na conexão para ${child.name}:`, err);
             // Mesmo com erro, continua para a próxima
-            setTimeout(() => printNext(index + 1), 2000);
+            setTimeout(() => printNext(index + 1), 1000);
           });
 
-          client.on('close', (hadError) => {
-            console.log(`Conexão fechada para ${child.name} (hadError=${hadError})`);
-            // Aguarda alguns segundos antes da próxima impressão
-            setTimeout(() => printNext(index + 1), 4000);
-          });
-
-          client.on('timeout', () => {
-            console.error(`Timeout na impressora para ${child.name}`);
-            client.destroy();
-            setTimeout(() => printNext(index + 1), 2000);
+          client.on('close', () => {
+            console.log(`Conexão fechada para ${child.name}`);
+            // Aguarda 10 segundos antes da próxima impressão
+            setTimeout(() => printNext(index + 1), 8000);
           });
         }
 
+        // Inicia a impressão sequencial
         printNext(0);
       }
     }, { noAck: false });
-  } catch (error) {
+  }
+  catch (error) {
     console.error('Erro ao conectar ou consumir mensagens:', error);
   }
 })();
+
+
