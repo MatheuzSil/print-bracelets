@@ -41,6 +41,7 @@ if (!printerIp) {
           };
         });
         const parent = payload.parentName;
+        console.log("PAYLOAD", payload);
         console.log("children parent:", parent);
         console.log("mensagem recebida", payload);
         console.log(`Imprimindo ${children.length} pulseira(s)`);
