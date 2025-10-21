@@ -2,9 +2,9 @@ const fs = require('fs');
 const amqp = require('amqplib');
 const net = require('net');
 
-const totemId = process.env.TOTEM_ID;
-const printerIp = process.env.PRINTER_IP;
-const printerPort = process.env.PRINTER_PORT || 9100;
+const totemId = "1be6a224-83b7-4072-92c0-11b347b20f16";
+const printerIp = "192.168.123.40";
+const printerPort = 9100;
 const rabbitUrl = process.env.RABBIT_URL;
 const machineId = process.env.MACHINE_ID;
 
@@ -40,7 +40,7 @@ if (!printerIp) {
             class: child.class,
           };
         });
-
+        console.log("children parent:", children.parent.name);
         console.log("mensagem recebida", payload);
         console.log(`Imprimindo ${children.length} pulseira(s)`);
 
