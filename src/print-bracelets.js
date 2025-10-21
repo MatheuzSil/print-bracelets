@@ -62,7 +62,7 @@ if (!totemId || !printerIp) {
             .replace(/{NOME}/g, child.name)
             .replace(/{CLASSE}/g, child.class)
             .replace(/{DATA}/g, child.birthDate)
-            .replace(/{RESPONSAVEL}/g, parent)
+            .replace(/{RESPONSAVEL}/g, formatedParentName)
             .replace(/{QRCODE_DATA}/g, `https://flechakids.space/child/${child.Id}`);
 
           // Converte para CP1252 (win1252)
