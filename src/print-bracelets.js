@@ -68,7 +68,7 @@ if (!printerIp) {
             .replace('{NOME}', child.name)
             .replace('{CLASSE}', child.class)
             .replace('{DATA}', child.birthDate)
-            .replace('{RESPONSAVEL}', parent)
+            .replace('{RESPONSAVEL}', formatedParentName)
             .replace('{QRCODE_DATA}', `https://flechakids.space/child/${child.Id}`);
 
           // Conecta à impressora
