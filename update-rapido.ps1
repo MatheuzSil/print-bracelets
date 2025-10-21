@@ -51,13 +51,7 @@ if ($LASTEXITCODE -eq 0) {
     
     $ConfigPath = "C:\PrintBracelets\config"
     
-    docker run -d `
-        --name $ContainerName `
-        --restart unless-stopped `
-        --network host `
-        -it `
-        -v "${ConfigPath}:/app/config" `
-        print-bracelets-github
+    docker run -d --name $ContainerName --restart unless-stopped --network host -it -v "${ConfigPath}:/app/config" print-bracelets-github
     
     Write-Host ""
     Write-Host "✅ SISTEMA ATUALIZADO COM SUCESSO!" -ForegroundColor Green

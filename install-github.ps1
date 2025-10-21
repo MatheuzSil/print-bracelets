@@ -334,30 +334,30 @@ echo.
 echo Atualizacao concluida!
 "@ | Out-File -FilePath "$InstallPath\atualizar.bat" -Encoding ASCII
 
-# Script PowerShell de atualização
-@"
+# Criar script PowerShell de atualização separadamente
+$UpdateScriptContent = @'
 # Script de Atualização do GitHub
-`$ContainerName = "print-bracelets-system"
-`$RepoUrl = "https://github.com/MatheuzSil/print-bracelets.git"
+$ContainerName = "print-bracelets-system"
+$RepoUrl = "https://github.com/MatheuzSil/print-bracelets.git"
 
 Write-Host "Parando container atual..." -ForegroundColor Yellow
-docker stop `$ContainerName 2>`$null
-docker rm `$ContainerName 2>`$null
+docker stop $ContainerName 2>$null
+docker rm $ContainerName 2>$null
 
-`$TempPath = "`$env:TEMP\print-bracelets-update"
-if (Test-Path `$TempPath) {
-    Remove-Item -Recurse -Force `$TempPath
+$TempPath = "$env:TEMP\print-bracelets-update"
+if (Test-Path $TempPath) {
+    Remove-Item -Recurse -Force $TempPath
 }
 
 Write-Host "Clonando versão mais recente..." -ForegroundColor Blue
-git clone `$RepoUrl `$TempPath
+git clone $RepoUrl $TempPath
 
-if (`$LASTEXITCODE -ne 0) {
+if ($LASTEXITCODE -ne 0) {
     Write-Host "Erro ao clonar repositório!" -ForegroundColor Red
     exit 1
 }
 
-`$DockerfileContent = @"
+$DockerfileContent = @"
 FROM node:18-alpine
 WORKDIR /app
 COPY package*.json ./
@@ -368,24 +368,18 @@ RUN mkdir -p /app/config
 CMD ["node", "setup.js"]
 "@
 
-`$DockerfileContent | Out-File -FilePath "`$TempPath\Dockerfile" -Encoding UTF8
+$DockerfileContent | Out-File -FilePath "$TempPath\Dockerfile" -Encoding UTF8
 
 Write-Host "Fazendo build da nova versão..." -ForegroundColor Blue
-Set-Location `$TempPath
+Set-Location $TempPath
 docker build -t print-bracelets-github .
 
-if (`$LASTEXITCODE -eq 0) {
+if ($LASTEXITCODE -eq 0) {
     Write-Host "Iniciando sistema atualizado..." -ForegroundColor Green
     
-    `$ConfigPath = "C:\PrintBracelets\config"
+    $ConfigPath = "C:\PrintBracelets\config"
     
-    docker run -d ```
-        --name `$ContainerName ```
-        --restart unless-stopped ```
-        --network host ```
-        -it ```
-        -v "`${ConfigPath}:/app/config" ```
-        print-bracelets-github
+    docker run -d --name $ContainerName --restart unless-stopped --network host -it -v "${ConfigPath}:/app/config" print-bracelets-github
     
     Write-Host "✅ Sistema atualizado com sucesso!" -ForegroundColor Green
 } else {
@@ -393,8 +387,10 @@ if (`$LASTEXITCODE -eq 0) {
 }
 
 Set-Location "C:\PrintBracelets"
-Remove-Item -Recurse -Force `$TempPath
-"@ | Out-File -FilePath "$InstallPath\update-github.ps1" -Encoding UTF8
+Remove-Item -Recurse -Force $TempPath
+'@
+
+$UpdateScriptContent | Out-File -FilePath "$InstallPath\update-github.ps1" -Encoding UTF8
 
 # Script de Desinstalar
 @"
@@ -449,13 +445,7 @@ $ConfigPath = "$InstallPath\config"
 New-Item -ItemType Directory -Path $ConfigPath -Force | Out-Null
 
 # Iniciar sistema principal
-docker run -d `
-    --name $ContainerName `
-    --restart unless-stopped `
-    --network host `
-    -it `
-    -v "${ConfigPath}:/app/config" `
-    print-bracelets-github
+docker run -d --name $ContainerName --restart unless-stopped --network host -it -v "${ConfigPath}:/app/config" print-bracelets-github
 
 Write-Host ""
 Write-Host "✅ INSTALAÇÃO CONCLUÍDA!" -ForegroundColor Green
