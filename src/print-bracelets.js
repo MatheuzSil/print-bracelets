@@ -40,7 +40,8 @@ if (!printerIp) {
             class: child.class,
           };
         });
-        console.log("children parent:", children.parent.name);
+        const parent = payload.parentName;
+        console.log("children parent:", parent);
         console.log("mensagem recebida", payload);
         console.log(`Imprimindo ${children.length} pulseira(s)`);
 
@@ -65,6 +66,7 @@ if (!printerIp) {
             .replace('{NOME}', child.name)
             .replace('{CLASSE}', child.class)
             .replace('{DATA}', child.birthDate)
+            .replace('{RESPONSAVEL}', parent)
             .replace('{QRCODE_DATA}', `https://flechakids.space/child/${child.Id}`);
 
           // Conecta à impressora
