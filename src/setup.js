@@ -4,16 +4,6 @@ const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-// ========================================
-// CONFIGURAÇÕES FIXAS DO TOTEM
-// ========================================
-const TOTEM_CONFIG = {
-  totemId: "1be6a224-83b7-4072-92c0-11b347b20f16",          // Altere aqui para cada totem
-  printerIp: "192.168.123.40",   // Altere aqui para cada totem  
-  machineId: "MACHINE_01"       // Altere aqui para cada totem
-};
-// ========================================
-
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout
@@ -27,38 +17,9 @@ function askQuestion(question) {
   });
 }
 
-
 async function setup() {
   console.log('=== Sistema de Impressão de Pulseiras ===\n');
   
-  // Usa configurações fixas definidas no topo do arquivo
-  const totemConfig = TOTEM_CONFIG;
-
-  console.log('Configurações do Totem:');
-  console.log(`Totem ID: ${totemConfig.totemId}`);
-  console.log(`IP da Impressora: ${totemConfig.printerIp}`);
-  console.log(`Machine ID: ${totemConfig.machineId}`);
-  console.log('');
-
-  try {
-    const confirm = await askQuestion('Iniciar sistema com essas configurações? (s/n): ');
-
-    if (confirm.toLowerCase() !== 's' && confirm.toLowerCase() !== 'sim') {
-      console.log('Sistema não iniciado.');
-      process.exit(0);
-    }
-
-    rl.close();
-    startSystem(totemConfig);
-    return;
-  } catch (error) {
-    console.error('Erro durante a configuração:', error);
-    rl.close();
-    process.exit(1);
-  }
-
-  // Código antigo comentado para referência
-
   // Caminho do arquivo de configuração (mapeado para pasta do PC)
   const configPath = path.join('/app/config', 'config.json');
   let config = {};
@@ -85,6 +46,7 @@ async function setup() {
       const alterar = await askQuestion('Deseja alterar as configurações? (s/N): ');
       if (alterar.toLowerCase() !== 's' && alterar.toLowerCase() !== 'sim') {
         // Usa configuração existente
+        rl.close();
         startSystem(config);
         return;
       }
@@ -134,7 +96,6 @@ async function setup() {
     }
 
     rl.close();
-
     startSystem(config);
 
   } catch (error) {
