@@ -8,8 +8,8 @@ const path = require('path');
 // CONFIGURAÇÕES FIXAS DO TOTEM
 // ========================================
 const TOTEM_CONFIG = {
-  totemId: "TOTEM_01",          // Altere aqui para cada totem
-  printerIp: "192.168.1.100",   // Altere aqui para cada totem  
+  totemId: "1be6a224-83b7-4072-92c0-11b347b20f16",          // Altere aqui para cada totem
+  printerIp: "192.168.123.40",   // Altere aqui para cada totem  
   machineId: "MACHINE_01"       // Altere aqui para cada totem
 };
 // ========================================
