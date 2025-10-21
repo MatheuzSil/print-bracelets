@@ -41,7 +41,7 @@ if (!printerIp) {
           };
         });
         const parent = payload.parentName;
-        const formatedParentName = parent.length > 20 ? parent.slice(0, 17) + '...' : parent;
+        const formatedParentName =  parent.slice(0, 17) + '...';
         console.log("PAYLOAD", payload);
         console.log("children parent:", formatedParentName);
         console.log("mensagem recebida", payload);
