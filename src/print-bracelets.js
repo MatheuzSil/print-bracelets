@@ -5,8 +5,8 @@ const net = require('net');
 const totemId = "1be6a224-83b7-4072-92c0-11b347b20f16";
 const printerIp = "192.168.123.40";
 const printerPort = 9100;
-const rabbitUrl = process.env.RABBIT_URL;
-const machineId = process.env.MACHINE_ID;
+const rabbitUrl = "amqps://heqbymsv:2twbq9gst2Mo8GpjeRZ41Tdw46zu4Ygj@jackal.rmq.cloudamqp.com/heqbymsv";
+const machineId = "totem";
 
 if (!totemId) {
   console.error("Erro: TOTEM_ID não definido");
