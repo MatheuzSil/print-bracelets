@@ -2,6 +2,22 @@ const fs = require('fs');
 const amqp = require('amqplib');
 const net = require('net');
 
+// Função para remover acentos e caracteres especiais
+function removeAccentsAndSpecialChars(text) {
+  if (!text) return '';
+  
+  return text
+    // Remove acentos
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    // Remove caracteres especiais, mantém apenas letras, números e espaços
+    .replace(/[^\w\s]/g, '')
+    // Remove espaços duplos
+    .replace(/\s+/g, ' ')
+    // Remove espaços no início e fim
+    .trim();
+}
+
 const totemId = "1be6a224-83b7-4072-92c0-11b347b20f16";
 const printerIp = "192.168.123.40";
 const printerPort = 9100;
@@ -35,13 +51,13 @@ if (!printerIp) {
         const children = payload.children.map(child => {
           return {
             Id: child.id,
-            name: child.name,
+            name: removeAccentsAndSpecialChars(child.name),
             birthDate: child.birthDate,
-            class: child.class,
+            class: removeAccentsAndSpecialChars(child.class),
           };
         });
-        const parent = payload.parentName;
-        const formatedParentName =  parent.slice(0, 17) + '...';
+        const parent = removeAccentsAndSpecialChars(payload.parentName);
+        const formatedParentName = parent.length > 17 ? parent.slice(0, 17) + '...' : parent;
         console.log("PAYLOAD", payload);
         console.log("children parent:", formatedParentName);
         console.log("mensagem recebida", payload);
@@ -59,7 +75,7 @@ if (!printerIp) {
             // Aqui você pode usar o childsId para imprimir a pulseira do pai
             // Por exemplo:
             // printParentBracelet(childsId);
-            let tspl = fs.readFileSync('layoutparent.tspl', 'utf8');
+            let tspl = fs.readFileSync('../layoutparent.tspl', 'utf8');
 
             // Concatena os IDs das crianças em uma única string
             const childsIdString = childsId.join(', ');
@@ -71,7 +87,7 @@ if (!printerIp) {
 
             // Configura a conexão com a impressora
             const client = new net.Socket();
-            client.connect(9100, process.env.PRINTER_IP, () => {
+            client.connect(printerPort, printerIp, () => {
               console.log('Conectado à impressora para imprimir pulseira do pai');
               client.write(tspl);
               client.end();
@@ -94,7 +110,7 @@ if (!printerIp) {
           console.log(`Imprimindo pulseira ${index + 1} para: ${child.name}`);
           
           // Lê o arquivo de layout
-          let tspl = fs.readFileSync('layout.tspl', 'utf8');
+          let tspl = fs.readFileSync('../layout.tspl', 'utf8');
           const Id = Math.floor(10000 + Math.random() * 90000).toString().slice(0, 3);
           
           // Adiciona o ID da criança ao array
