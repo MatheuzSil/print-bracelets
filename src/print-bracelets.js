@@ -59,7 +59,7 @@ if (!printerIp) {
             // Aqui você pode usar o childsId para imprimir a pulseira do pai
             // Por exemplo:
             // printParentBracelet(childsId);
-            let tspl = fs.readFileSync('layout_parent.tspl', 'utf8');
+            let tspl = fs.readFileSync('layoutparent.tspl', 'utf8');
 
             // Concatena os IDs das crianças em uma única string
             const childsIdString = childsId.join(', ');
