@@ -1,3 +1,5 @@
+import { printParentBracelet } from './printParentBracelet.js';
+
 const fs = require('fs');
 const amqp = require('amqplib');
 const net = require('net');
@@ -47,10 +49,20 @@ if (!printerIp) {
         console.log("mensagem recebida", payload);
         console.log(`Imprimindo ${children.length} pulseira(s)`);
 
+        // Array para armazenar os IDs aleatórios das crianças
+        let childsId = [];
+
         // Função para imprimir uma pulseira por vez (sequencial)
         function printNext(index) {
           if (index >= children.length) {
-            console.log('Todas as pulseiras foram impressas');
+            console.log('Todas as pulseiras das crianças foram impressas');
+            console.log('IDs das crianças:', childsId);
+            
+            // Aqui você pode usar o childsId para imprimir a pulseira do pai
+            // Por exemplo:
+            // printParentBracelet(childsId);
+            printParentBracelet(formatedParentName, childsId);
+            
             channel.ack(msg);
             return;
           }
@@ -61,7 +73,10 @@ if (!printerIp) {
           // Lê o arquivo de layout
           let tspl = fs.readFileSync('layout.tspl', 'utf8');
           const Id = Math.floor(10000 + Math.random() * 90000).toString().slice(0, 3);
-
+          
+          // Adiciona o ID da criança ao array
+          childsId.push(Id);
+          
           // Substitui os placeholders pelos valores variáveis
           tspl = tspl
             .replace('{ID}', Id)
