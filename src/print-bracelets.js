@@ -1,5 +1,3 @@
-import { printParentBracelet } from './printParentBracelet.js';
-
 const fs = require('fs');
 const amqp = require('amqplib');
 const net = require('net');
@@ -61,12 +59,37 @@ if (!printerIp) {
             // Aqui você pode usar o childsId para imprimir a pulseira do pai
             // Por exemplo:
             // printParentBracelet(childsId);
-            printParentBracelet(formatedParentName, childsId);
+            let tspl = fs.readFileSync('layout_parent.tspl', 'utf8');
+
+            // Concatena os IDs das crianças em uma única string
+            const childsIdString = childsId.join(', ');
+
+            // Substitui os placeholders pelos valores variáveis
+            tspl = tspl
+              .replace('{PARENT_NAME}', parentName)
+              .replace('{CHILDS_ID}', childsIdString);
+
+            // Configura a conexão com a impressora
+            const client = new net.Socket();
+            client.connect(9100, process.env.PRINTER_IP, () => {
+              console.log('Conectado à impressora para imprimir pulseira do pai');
+              client.write(tspl);
+              client.end();
+            });
+
+            client.on('error', (err) => {
+              console.error('Erro na conexão para imprimir pulseira do pai:', err);
+            });
+
+            client.on('close', () => {
+              console.log('Conexão fechada após imprimir pulseira do pai');
+            });
             
             channel.ack(msg);
             return;
           }
 
+          // Imprime a pulseira da criança atual
           const child = children[index];
           console.log(`Imprimindo pulseira ${index + 1} para: ${child.name}`);
           
