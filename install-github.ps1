@@ -75,6 +75,7 @@ RUN npm install --production
 # Copiar código fonte
 COPY src/ ./
 COPY layout.tspl ./
+COPY layoutparent.tspl ./
 
 # Criar diretório de configuração
 RUN mkdir -p /app/config
@@ -364,6 +365,7 @@ COPY package*.json ./
 RUN npm install --production
 COPY src/ ./
 COPY layout.tspl ./
+COPY layoutparent.tspl ./
 RUN mkdir -p /app/config
 CMD ["node", "setup.js"]
 "@
