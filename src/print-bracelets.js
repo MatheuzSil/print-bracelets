@@ -72,9 +72,7 @@ if (!printerIp) {
             console.log('Todas as pulseiras das crianças foram impressas');
             console.log('IDs das crianças:', childsId);
             
-            // Aqui você pode usar o childsId para imprimir a pulseira do pai
-            // Por exemplo:
-            // printParentBracelet(childsId);
+            console.log('Imprimindo pulseira do pai');
             let tspl = fs.readFileSync('../layoutparent.tspl', 'utf8');
 
             // Concatena os IDs das crianças em uma única string
@@ -82,7 +80,7 @@ if (!printerIp) {
 
             // Substitui os placeholders pelos valores variáveis
             tspl = tspl
-              .replace('{PARENT_NAME}', formatedParentName)
+              .replace('{PARENT_NAME}', parent)
               .replace('{CHILDS_ID}', childsIdString);
 
             // Configura a conexão com a impressora
