@@ -73,7 +73,7 @@ if (!printerIp) {
             console.log('IDs das crianças:', childsId);
             
             console.log('Imprimindo pulseira do pai');
-            let tspl = fs.readFileSync('../layoutparent.tspl', 'utf8');
+            let tspl = fs.readFileSync('layoutparent.tspl', 'utf8');
 
             // Concatena os IDs das crianças em uma única string
             const childsIdString = childsId.join(', ');
@@ -108,7 +108,7 @@ if (!printerIp) {
           console.log(`Imprimindo pulseira ${index + 1} para: ${child.name}`);
           
           // Lê o arquivo de layout
-          let tspl = fs.readFileSync('../layout.tspl', 'utf8');
+          let tspl = fs.readFileSync('layout.tspl', 'utf8');
           const Id = Math.floor(10000 + Math.random() * 90000).toString().slice(0, 3);
           
           // Adiciona o ID da criança ao array
