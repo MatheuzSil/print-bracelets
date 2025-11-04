@@ -1,6 +1,8 @@
 const fs = require('fs');
 const amqp = require('amqplib');
 const net = require('net');
+const { time } = require('console');
+const { type } = require('os');
 
 // Função para remover acentos e caracteres especiais
 function removeAccentsAndSpecialChars(text) {
@@ -37,13 +39,35 @@ if (!printerIp) {
 (async () => {
   try {
     const queueName = `print_bracelets_${totemId}`;
+    const statusQueueName = `status_totem_${totemId}`;
     console.log(`Nome da fila: ${queueName}`);
 
     const connection = await amqp.connect(rabbitUrl);
     const channel = await connection.createChannel();
 
     await channel.assertQueue(queueName, { durable: true });
+    await channel.assertQueue(statusQueueName, { durable: true });
     console.log(`Aguardando mensagens na fila: ${queueName}`);
+
+    async function sendStatusMessage(status) {
+      try {
+        const statusPayload = {
+          type: status.type,
+          message: status.message || '',
+          totalBracelets: status.totalBracelets || 0,
+          totalChildren: status.totalChildren || 0,
+          childrenName: status.childrenName || '',
+          parentName: status.parentName || '',
+          timestamp: new Date().toISOString(),
+          totemId: totemId,
+
+      };
+      channel.sendToQueue(statusQueueName, Buffer.from(JSON.stringify(statusPayload)), { persistent: true });
+      console.log('Mensagem de status enviada:', statusPayload);
+      } catch (error) {
+        console.error('Erro ao enviar mensagem de status:', error);
+      }
+    }
 
     channel.consume(queueName, (msg) => {
       if (msg !== null) {
@@ -63,6 +87,8 @@ if (!printerIp) {
         console.log("mensagem recebida", payload);
         console.log(`Imprimindo ${children.length} pulseira(s)`);
 
+        sendStatusMessage({ type: 'printing_started', totalBracelets: children.length, totalChildren: children.length, message: 'Iniciando impressão das pulseiras', childrenName: children.map(child => child.name) });
+
         // Array para armazenar os IDs aleatórios das crianças
         let childsId = [];
 
@@ -74,6 +100,8 @@ if (!printerIp) {
             
             console.log('Imprimindo pulseira do pai');
             let tspl = fs.readFileSync('layoutparent.tspl', 'utf8');
+
+            sendStatusMessage({ type: 'printing_parent', message: 'Imprimindo pulseira do responsável', parentName: parent });
 
             // Concatena os IDs das crianças em uma única string
             const childsIdString = childsId.join(', ');
@@ -100,6 +128,7 @@ if (!printerIp) {
             });
             
             channel.ack(msg);
+            sendStatusMessage({ type: 'printing_completed', message: 'Impressão das pulseiras concluída'});
             return;
           }
 
@@ -107,6 +136,8 @@ if (!printerIp) {
           const child = children[index];
           console.log(`Imprimindo pulseira ${index + 1} para: ${child.name}`);
           
+          sendStatusMessage({ type: 'printing_child', message: `Imprimindo pulseira para ${child.name}` });
+
           // Lê o arquivo de layout
           let tspl = fs.readFileSync('layout.tspl', 'utf8');
           const Id = Math.floor(10000 + Math.random() * 90000).toString().slice(0, 3);
@@ -137,6 +168,7 @@ if (!printerIp) {
             console.error(`Erro na conexão para ${child.name}:`, err);
             // Mesmo com erro, continua para a próxima
             setTimeout(() => printNext(index + 1), 1000);
+            sendStatusMessage({ type: 'printing_error', message: `Erro ao imprimir pulseira para ${child.name}` });
           });
 
           client.on('close', () => {
