@@ -39,7 +39,7 @@ if (!printerIp) {
 (async () => {
   try {
     const queueName = `print_bracelets_${totemId}`;
-    const statusQueueName = `print_bracelets_status_totem_${totemId}`;
+    const statusQueueName = `print_bracelets_status_${totemId}`;
     console.log(`Nome da fila: ${queueName}`);
 
     const connection = await amqp.connect(rabbitUrl);
