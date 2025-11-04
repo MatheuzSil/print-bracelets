@@ -1,7 +1,7 @@
 const fs = require('fs');
 const amqp = require('amqplib');
 const net = require('net');
-const { time } = require('console');
+const { time, error } = require('console');
 const { type } = require('os');
 
 // Função para remover acentos e caracteres especiais
@@ -60,6 +60,7 @@ if (!printerIp) {
           parentName: status.parentName || '',
           timestamp: new Date().toISOString(),
           totemId: totemId,
+          errorMessage: status.error || null,
 
       };
       channel.sendToQueue(statusQueueName, Buffer.from(JSON.stringify(statusPayload)), { persistent: true });
