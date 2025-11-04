@@ -102,8 +102,6 @@ if (!printerIp) {
             console.log('Imprimindo pulseira do pai');
             let tspl = fs.readFileSync('layoutparent.tspl', 'utf8');
 
-            sendStatusMessage({ type: 'printing_parent', message: 'Imprimindo pulseira do responsável', parentName: parent });
-
             // Concatena os IDs das crianças em uma única string
             const childsIdString = childsId.join(', ');
 
@@ -137,8 +135,6 @@ if (!printerIp) {
           const child = children[index];
           console.log(`Imprimindo pulseira ${index + 1} para: ${child.name}`);
           
-          sendStatusMessage({ type: 'printing_child', message: `Imprimindo pulseira para ${child.name}` });
-
           // Lê o arquivo de layout
           let tspl = fs.readFileSync('layout.tspl', 'utf8');
           const Id = Math.floor(10000 + Math.random() * 90000).toString().slice(0, 3);
@@ -175,7 +171,13 @@ if (!printerIp) {
           client.on('close', () => {
             console.log(`Conexão fechada para ${child.name}`);
             // Aguarda 10 segundos antes da próxima impressão
-            setTimeout(() => printNext(index + 1), 8000);
+            setTimeout(() => {
+              printNext(index + 1);
+              sendStatusMessage({ type: 'printing_child', message: `Imprimindo pulseira para ${child.name}` });
+              if(index >= children.length){
+                sendStatusMessage({ type: 'printing_parent', message: 'Impressão da pulseira do responsável', parentName: parent });
+              }
+            }, 8000);
           });
         }
 
