@@ -83,7 +83,8 @@ if (!printerIp) {
             // Substitui os placeholders pelos valores variáveis
             tspl = tspl
               .replace('{PARENT_NAME}', parent)
-              .replace('{CHILDS_ID}', childsIdString);
+              .replace('{CHILDS_ID}', childsIdString)
+              .replace('{DATE}', new Date().toLocaleDateString());
 
             // Configura a conexão com a impressora
             const client = new net.Socket();
