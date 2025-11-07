@@ -39,36 +39,13 @@ if (!printerIp) {
 (async () => {
   try {
     const queueName = `print_bracelets_${totemId}`;
-    const statusQueueName = `print_bracelets_status_${totemId}`;
     console.log(`Nome da fila: ${queueName}`);
 
     const connection = await amqp.connect(rabbitUrl);
     const channel = await connection.createChannel();
 
     await channel.assertQueue(queueName, { durable: true });
-    await channel.assertQueue(statusQueueName, { durable: true });
     console.log(`Aguardando mensagens na fila: ${queueName}`);
-
-    async function sendStatusMessage(status) {
-      try {
-        const statusPayload = {
-          type: status.type,
-          message: status.message || '',
-          totalBracelets: status.totalBracelets || 0,
-          totalChildren: status.totalChildren || 0,
-          childrenName: status.childrenName || '',
-          parentName: status.parentName || '',
-          timestamp: new Date().toISOString(),
-          totemId: totemId,
-          errorMessage: status.error || null,
-
-      };
-      channel.sendToQueue(statusQueueName, Buffer.from(JSON.stringify(statusPayload)), { persistent: true });
-      console.log('Mensagem de status enviada:', statusPayload);
-      } catch (error) {
-        console.error('Erro ao enviar mensagem de status:', error);
-      }
-    }
 
     channel.consume(queueName, (msg) => {
       if (msg !== null) {
@@ -87,8 +64,6 @@ if (!printerIp) {
         console.log("children parent:", formatedParentName);
         console.log("mensagem recebida", payload);
         console.log(`Imprimindo ${children.length} pulseira(s)`);
-
-        sendStatusMessage({ type: 'printing_started', totalBracelets: children.length, totalChildren: children.length, message: 'Iniciando impressão das pulseiras', childrenName: children.map(child => child.name) });
 
         // Array para armazenar os IDs aleatórios das crianças
         let childsId = [];
@@ -127,7 +102,6 @@ if (!printerIp) {
             });
             
             channel.ack(msg);
-            sendStatusMessage({ type: 'printing_completed', message: 'Impressão das pulseiras concluída'});
             return;
           }
 
@@ -173,10 +147,6 @@ if (!printerIp) {
             // Aguarda 10 segundos antes da próxima impressão
             setTimeout(() => {
               printNext(index + 1);
-              sendStatusMessage({ type: 'printing_child', message: `Imprimindo pulseira para ${child.name}` });
-              if(index >= children.length){
-                sendStatusMessage({ type: 'printing_parent', message: 'Impressão da pulseira do responsável', parentName: parent });
-              }
             }, 8000);
           });
         }
