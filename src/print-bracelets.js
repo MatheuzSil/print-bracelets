@@ -59,7 +59,7 @@ if (!printerIp) {
           };
         });
         const parent = removeAccentsAndSpecialChars(payload.parentName);
-        const formatedParentName = parent.length > 17 ? parent.slice(0, 17) + '...' : parent;
+        const formatedParentName = parent.length > 20 ? parent.slice(0, 17) + '...' : parent;
         console.log("PAYLOAD", payload);
         console.log("children parent:", formatedParentName);
         console.log("mensagem recebida", payload);
@@ -82,7 +82,7 @@ if (!printerIp) {
 
             // Substitui os placeholders pelos valores variáveis
             tspl = tspl
-              .replace('{PARENT_NAME}', parent)
+              .replace('{PARENT_NAME}', formatedParentName)
               .replace('{CHILDS_ID}', childsIdString)
               .replace('{DATE}', new Date().toLocaleDateString());
 
