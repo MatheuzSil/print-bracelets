@@ -84,7 +84,9 @@ if (!printerIp) {
             tspl = tspl
               .replace('{PARENT_NAME}', formatedParentName)
               .replace('{CHILDS_ID}', childsIdString)
-              .replace('{DATE}', new Date().toLocaleDateString());
+              .replace('{DATE}', new Date().toLocaleDateString())
+              .replace('{QRCODE_DATA}', `https://flechakids.space/child/${children[0].id}`);
+              
 
             // Configura a conexão com a impressora
             const client = new net.Socket();
