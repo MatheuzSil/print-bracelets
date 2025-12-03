@@ -150,7 +150,7 @@ if (!printerIp) {
             // Aguarda 10 segundos antes da próxima impressão
             setTimeout(() => {
               printNext(index + 1);
-            }, 8000);
+            }, 6000);
           });
         }
 
