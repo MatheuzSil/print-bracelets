@@ -87,14 +87,14 @@ if (!printerIp) {
             let tspl = fs.readFileSync('layoutparent.tspl', 'utf8');
 
             // Concatena os IDs das crianças em uma única string
-            const childsIdString = childsId.join(', ');
+            const childsIdString = childsId.join(',');
 
             // Substitui os placeholders pelos valores variáveis
             tspl = tspl
               .replace('{PARENT_NAME}', formatedParentName)
               .replace('{CHILDS_ID}', childsIdString)
               .replace('{DATE}', new Date().toLocaleDateString())
-              .replace('{QRCODE_DATA}', `https://flechakids.space/child/${children[0].id}`);
+              .replace('{QRCODE_DATA}', `https://flechakids.space/child/${children.id}`);
               
 
             // Configura a conexão com a impressora
@@ -159,7 +159,7 @@ if (!printerIp) {
             // Aguarda 10 segundos antes da próxima impressão
             setTimeout(() => {
               printNext(index + 1);
-            }, 8000);
+            }, 6000);
           });
         }
 
