@@ -20,11 +20,20 @@ function removeAccentsAndSpecialChars(text) {
     .trim();
 }
 
-const totemId = "1be6a224-83b7-4072-92c0-11b347b20f16";
-const printerIp = "192.168.123.40";
-const printerPort = 9100;
-const rabbitUrl = "amqps://heqbymsv:2twbq9gst2Mo8GpjeRZ41Tdw46zu4Ygj@jackal.rmq.cloudamqp.com/heqbymsv";
-const machineId = "totem";
+// Obtém configurações das variáveis de ambiente (setadas pelo setup.js)
+const totemId = process.env.TOTEM_ID || "1be6a224-83b7-4072-92c0-11b347b20f16";
+const printerIp = process.env.PRINTER_IP || "192.168.123.40";
+const printerPort = process.env.PRINTER_PORT || 9100;
+const rabbitUrl = process.env.RABBIT_URL || "amqps://heqbymsv:2twbq9gst2Mo8GpjeRZ41Tdw46zu4Ygj@jackal.rmq.cloudamqp.com/heqbymsv";
+const machineId = process.env.MACHINE_ID || "totem";
+
+// Log das configurações carregadas
+console.log('=== Configurações Carregadas ===');
+console.log(`Totem ID: ${totemId}`);
+console.log(`Printer IP: ${printerIp}`);
+console.log(`Printer Port: ${printerPort}`);
+console.log(`Machine ID: ${machineId}`);
+console.log('===============================\n');
 
 if (!totemId) {
   console.error("Erro: TOTEM_ID não definido");
