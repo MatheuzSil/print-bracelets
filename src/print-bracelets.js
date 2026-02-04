@@ -68,7 +68,7 @@ if (!printerIp) {
           };
         });
         const parent = removeAccentsAndSpecialChars(payload.parentName);
-        const formatedParentName = parent.length > 20 ? parent.slice(0, 17) + '...' : parent;
+        const formatedParentName = parent.length > 20 ? parent.slice(0, 17) : parent;
         console.log("PAYLOAD", payload);
         console.log("children parent:", formatedParentName);
         console.log("mensagem recebida", payload);
@@ -124,7 +124,36 @@ if (!printerIp) {
           // Lê o arquivo de layout
           let tspl = fs.readFileSync('layout.tspl', 'utf8');
           const Id = Math.floor(10000 + Math.random() * 90000).toString().slice(0, 3);
-          
+          const ageByDateOfBirth = new Date().getFullYear() - new Date(child.birthDate).getFullYear();
+          let childClass;
+          switch (ageByDateOfBirth) {
+            case 1: 
+              childClass = 'Berçário';
+              break;
+            case 2: 
+            case 3:
+              childClass = 'Maternal';
+              break;
+            case 4: 
+            case 5:
+              childClass = 'Jardim 1';
+              break;
+            case 6: 
+            case 7:
+              childClass = 'Jardim 2';
+              break;
+            case 8: 
+            case 9:
+              childClass = 'Juniores 1';
+              break;
+            case 10: 
+            case 11:
+              childClass = 'Juniores 2';
+              break;
+            default: 
+              childClass = '';
+              break;
+          }
           // Adiciona o ID da criança ao array
           childsId.push(Id);
           
@@ -132,7 +161,7 @@ if (!printerIp) {
           tspl = tspl
             .replace('{ID}', Id)
             .replace('{NOME}', child.name)
-            .replace('{CLASSE}', child.class)
+            .replace('{CLASSE}', childClass)
             .replace('{DATA}', child.birthDate)
             .replace('{RESPONSAVEL}', formatedParentName)
             .replace('{QRCODE_DATA}', `https://flechakids.space/child/${child.Id}`);
