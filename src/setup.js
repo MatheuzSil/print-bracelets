@@ -340,8 +340,9 @@ async function setup() {
 function startTotem(totem) {
   console.log(`Iniciando totem "${totem.nome}"...`);
 
-  // Cria um novo processo para o totem em uma janela separada
-  const child = spawn('cmd', ['/c', 'start', 'cmd', '/k', `node print-bracelets.js "${totem.nome}"`], {
+  // No ambiente Docker, executa o print-bracelets.js diretamente
+  // Cada totem roda como um processo separado
+  const child = spawn('node', ['src/print-bracelets.js'], {
     env: {
       ...process.env,
       TOTEM_ID: totem.totemId,
@@ -351,7 +352,8 @@ function startTotem(totem) {
       PRINTER_PORT: totem.printerPort,
       TOTEM_NAME: totem.nome
     },
-    detached: true
+    detached: false,
+    stdio: ['pipe', 'pipe', 'pipe']
   });
 
   // Adiciona o processo à lista de ativos
@@ -364,8 +366,17 @@ function startTotem(totem) {
 
   activeProcesses.push(processoInfo);
 
+  // Captura e exibe logs do totem
+  child.stdout.on('data', (data) => {
+    console.log(`[${totem.nome}] ${data.toString().trim()}`);
+  });
+
+  child.stderr.on('data', (data) => {
+    console.error(`[${totem.nome}] ERRO: ${data.toString().trim()}`);
+  });
+
   child.on('close', (code) => {
-    console.log(`Totem "${totem.nome}" finalizado com código: ${code}`);
+    console.log(`[${totem.nome}] Totem finalizado com código: ${code}`);
     // Remove da lista de processos ativos
     const index = activeProcesses.findIndex(p => p.totemId === totem.id);
     if (index !== -1) {
@@ -382,10 +393,12 @@ function startTotem(totem) {
     }
   });
 
-  console.log(`✓ Totem "${totem.nome}" iniciado em nova janela!`);
+  console.log(`✅ Totem "${totem.nome}" iniciado com sucesso!`);
   console.log(`  PID: ${child.pid}`);
   console.log(`  Totem ID: ${totem.totemId}`);
   console.log(`  IP da Impressora: ${totem.printerIp}`);
+  console.log(`\n📋 IMPORTANTE: No ambiente Docker, todos os totems rodam`);
+  console.log(`  no mesmo terminal. Use [4] Parar Totem para parar individualmente.`);
 }
 
 // Função de limpeza ao sair
