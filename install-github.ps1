@@ -386,7 +386,6 @@ echo Atualizacao concluida!
 
     # Remover script PowerShell separado de atualização (não é mais necessário)
     # Agora usa o próprio install-github.ps1
-}
 
     # Script de Desinstalar
     @"
