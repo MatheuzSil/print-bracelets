@@ -9,6 +9,12 @@ const rl = readline.createInterface({
   output: process.stdout
 });
 
+// Array para armazenar os processos ativos dos totems
+let activeProcesses = [];
+
+// Caminho do arquivo de configuração dos totems
+const totemsConfigPath = path.join(process.cwd(), 'totems.json');
+
 function askQuestion(question) {
   return new Promise((resolve) => {
     rl.question(question, (answer) => {
@@ -17,121 +23,329 @@ function askQuestion(question) {
   });
 }
 
-async function setup() {
-  console.log('=== Sistema de Impressão de Pulseiras ===\n');
-  
-  // Caminho do arquivo de configuração (mapeado para pasta do PC)
-  const configPath = path.join('/app/config', 'config.json');
-  let config = {};
-
-  // Verifica se a pasta de config existe e é acessível
+function loadTotems() {
   try {
-    if (!fs.existsSync('/app/config')) {
-      console.log('Pasta de configuração não encontrada. Criando...');
-      fs.mkdirSync('/app/config', { recursive: true });
+    if (fs.existsSync(totemsConfigPath)) {
+      const data = fs.readFileSync(totemsConfigPath, 'utf8');
+      return JSON.parse(data);
     }
   } catch (error) {
-    console.log('Aviso: Não foi possível acessar a pasta de configuração.');
+    console.log('Erro ao carregar configurações dos totems:', error.message);
   }
+  return [];
+}
 
-  // Tenta carregar configuração existente
-  if (fs.existsSync(configPath)) {
-    try {
-      config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-      console.log('Configuração encontrada:');
-      console.log(`Totem ID: ${config.totemId}`);
-      console.log(`IP da Impressora: ${config.printerIp}`);
-      console.log(`Machine ID: ${config.machineId}`);
-      console.log('');
-      const alterar = await askQuestion('Deseja alterar as configurações? (s/N): ');
-      if (alterar.toLowerCase() !== 's' && alterar.toLowerCase() !== 'sim') {
-        // Usa configuração existente
-        rl.close();
-        startSystem(config);
-        return;
-      }
-    } catch (e) {
-      console.log('Configuração existente inválida, será necessário reconfigurar.');
-    }
-  }
-
+function saveTotems(totems) {
   try {
-    console.log('');
-    const totemIdInput = await askQuestion(`Digite o Totem ID${config.totemId ? ` [${config.totemId}]` : ''}: `);
-    const totemId = totemIdInput.trim() || config.totemId || '';
+    fs.writeFileSync(totemsConfigPath, JSON.stringify(totems, null, 2), 'utf8');
+    console.log('✓ Configurações dos totems salvas.');
+  } catch (error) {
+    console.log('⚠ Não foi possível salvar configurações dos totems:', error.message);
+  }
+}
+
+async function cadastrarTotem() {
+  console.log('\n=== Cadastrar Novo Totem ===\n');
+  
+  try {
+    const nome = await askQuestion('Digite o nome do totem: ');
+    if (!nome.trim()) {
+      console.log('Nome do totem é obrigatório!');
+      return;
+    }
+
+    const totemId = await askQuestion('Digite o Totem ID: ');
+    if (!totemId.trim()) {
+      console.log('Totem ID é obrigatório!');
+      return;
+    }
     
-    const printerIpInput = await askQuestion(`Digite o IP da Impressora${config.printerIp ? ` [${config.printerIp}]` : ''}: `);
-    const printerIp = printerIpInput.trim() || config.printerIp || '';
+    const printerIp = await askQuestion('Digite o IP da Impressora: ');
+    if (!printerIp.trim()) {
+      console.log('IP da impressora é obrigatório!');
+      return;
+    }
     
-    const machineIdInput = await askQuestion(`Digite o Machine ID${config.machineId ? ` [${config.machineId}]` : ''}: `);
-    const machineId = machineIdInput.trim() || config.machineId || '';
+    const machineId = await askQuestion('Digite o Machine ID: ');
+    if (!machineId.trim()) {
+      console.log('Machine ID é obrigatório!');
+      return;
+    }
 
     // Valores padrão
     const rabbitUrl = "amqps://heqbymsv:2twbq9gst2Mo8GpjeRZ41Tdw46zu4Ygj@jackal.rmq.cloudamqp.com/heqbymsv";
     const printerPort = 9100;
 
-    console.log('\n=== Configurações ===');
+    console.log('\n=== Configurações do Totem ===');
+    console.log(`Nome: ${nome}`);
     console.log(`Totem ID: ${totemId}`);
     console.log(`IP da Impressora: ${printerIp}`);
     console.log(`Machine ID: ${machineId}`);
     console.log(`Rabbit URL: ${rabbitUrl}`);
     console.log(`Porta da Impressora: ${printerPort}`);
-    console.log('========================\n');
+    console.log('================================\n');
 
-    const confirm = await askQuestion('Confirma as configurações? (s/n): ');
+    const confirm = await askQuestion('Confirma o cadastro deste totem? (s/n): ');
 
     if (confirm.toLowerCase() !== 's' && confirm.toLowerCase() !== 'sim') {
-      console.log('Configuração cancelada.');
-      process.exit(0);
+      console.log('Cadastro cancelado.');
+      return;
     }
 
-    // Salva configuração
-    config = { totemId, printerIp, machineId };
-    try {
-      fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf8');
-      console.log(`✓ Configuração salva em: ${configPath}`);
-    } catch (error) {
-      console.log(`⚠ Não foi possível salvar configuração: ${error.message}`);
-      console.log('As configurações serão usadas apenas nesta sessão.');
+    // Carrega totems existentes
+    const totems = loadTotems();
+    
+    // Verifica se já existe um totem com o mesmo nome ou ID
+    const existingTotem = totems.find(t => t.nome.toLowerCase() === nome.toLowerCase() || t.totemId === totemId);
+    if (existingTotem) {
+      console.log('⚠ Já existe um totem com este nome ou ID!');
+      return;
     }
 
-    rl.close();
-    startSystem(config);
+    // Adiciona o novo totem
+    const novoTotem = {
+      id: Date.now(), // ID único baseado no timestamp
+      nome: nome.trim(),
+      totemId: totemId.trim(),
+      printerIp: printerIp.trim(),
+      machineId: machineId.trim(),
+      rabbitUrl,
+      printerPort,
+      dataCriacao: new Date().toISOString()
+    };
+
+    totems.push(novoTotem);
+    saveTotems(totems);
+    console.log(`✓ Totem "${nome}" cadastrado com sucesso!`);
 
   } catch (error) {
-    console.error('Erro durante a configuração:', error);
-    rl.close();
-    process.exit(1);
+    console.error('Erro durante o cadastro:', error);
   }
 }
 
-function startSystem(config) {
-  // Valores padrão
-  const rabbitUrl = "amqps://heqbymsv:2twbq9gst2Mo8GpjeRZ41Tdw46zu4Ygj@jackal.rmq.cloudamqp.com/heqbymsv";
-  const printerPort = 9100;
+async function listarTotems() {
+  const totems = loadTotems();
+  
+  if (totems.length === 0) {
+    console.log('\nNenhum totem cadastrado.');
+    return;
+  }
 
-  console.log('Iniciando sistema...\n');
+  console.log('\n=== Totems Cadastrados ===\n');
+  totems.forEach((totem, index) => {
+    const status = activeProcesses.find(p => p.totemId === totem.id) ? '[ATIVO]' : '[INATIVO]';
+    console.log(`[${index + 1}] ${status} ${totem.nome}`);
+    console.log(`    Totem ID: ${totem.totemId}`);
+    console.log(`    IP: ${totem.printerIp}`);
+    console.log(`    Machine ID: ${totem.machineId}`);
+    console.log(`    Criado em: ${new Date(totem.dataCriacao).toLocaleString()}`);
+    console.log('');
+  });
+}
 
-  // Define as variáveis de ambiente
-  process.env.TOTEM_ID = config.totemId;
-  process.env.PRINTER_IP = config.printerIp;
-  process.env.MACHINE_ID = config.machineId;
-  process.env.RABBIT_URL = rabbitUrl;
-  process.env.PRINTER_PORT = printerPort;
+async function iniciarTotem() {
+  const totems = loadTotems();
+  
+  if (totems.length === 0) {
+    console.log('\nNenhum totem cadastrado. Cadastre um totem primeiro.');
+    return;
+  }
 
-  // Inicia o sistema principal
-  const child = spawn('node', ['print-bracelets.js'], {
-    stdio: 'inherit',
-    env: { ...process.env }
+  console.log('\n=== Iniciar Totem ===\n');
+  totems.forEach((totem, index) => {
+    const status = activeProcesses.find(p => p.totemId === totem.id) ? '[ATIVO]' : '[INATIVO]';
+    console.log(`[${index + 1}] ${status} ${totem.nome} (${totem.totemId})`);
   });
 
+  const escolha = await askQuestion('\nDigite o número do totem para iniciar: ');
+  const indice = parseInt(escolha) - 1;
+
+  if (isNaN(indice) || indice < 0 || indice >= totems.length) {
+    console.log('Opção inválida!');
+    return;
+  }
+
+  const totem = totems[indice];
+  
+  // Verifica se o totem já está ativo
+  const processoExistente = activeProcesses.find(p => p.totemId === totem.id);
+  if (processoExistente) {
+    console.log(`⚠ O totem "${totem.nome}" já está ativo!`);
+    return;
+  }
+
+  startTotem(totem);
+}
+
+async function pararTotem() {
+  if (activeProcesses.length === 0) {
+    console.log('\nNenhum totem ativo no momento.');
+    return;
+  }
+
+  console.log('\n=== Parar Totem ===\n');
+  activeProcesses.forEach((processo, index) => {
+    console.log(`[${index + 1}] ${processo.nome} (PID: ${processo.process.pid})`);
+  });
+
+  const escolha = await askQuestion('\nDigite o número do totem para parar: ');
+  const indice = parseInt(escolha) - 1;
+
+  if (isNaN(indice) || indice < 0 || indice >= activeProcesses.length) {
+    console.log('Opção inválida!');
+    return;
+  }
+
+  const processo = activeProcesses[indice];
+  console.log(`Parando totem "${processo.nome}"...`);
+  
+  try {
+    processo.process.kill();
+    activeProcesses.splice(indice, 1);
+    console.log(`✓ Totem "${processo.nome}" parado com sucesso!`);
+  } catch (error) {
+    console.log(`⚠ Erro ao parar totem: ${error.message}`);
+  }
+}
+
+async function setup() {
+  while (true) {
+    console.clear();
+    console.log('=======================================================');
+    console.log('Sistema de Impressão de Pulseiras [GITHUB]');
+    console.log('=======================================================');
+    console.log('');
+    console.log('[1] Cadastrar Totem');
+    console.log('[2] Ver Totems Cadastrados');
+    console.log('[3] Iniciar Totem');
+    console.log('[4] Parar Totem');
+    console.log('[5] Ver Logs em Tempo Real');
+    console.log('[6] Reiniciar Sistema');
+    console.log('[7] Atualizar do GitHub');
+    console.log('[8] Desinstalar Sistema');
+    console.log('[9] Sair');
+    console.log('');
+    console.log('=======================================================');
+
+    const opcao = await askQuestion('Digite sua opção (1-9): ');
+
+    switch(opcao) {
+      case '1':
+        await cadastrarTotem();
+        await askQuestion('\nPressione Enter para continuar...');
+        break;
+      case '2':
+        await listarTotems();
+        await askQuestion('\nPressione Enter para continuar...');
+        break;
+      case '3':
+        await iniciarTotem();
+        await askQuestion('\nPressione Enter para continuar...');
+        break;
+      case '4':
+        await pararTotem();
+        await askQuestion('\nPressione Enter para continuar...');
+        break;
+      case '5':
+        console.log('Funcionalidade de logs em desenvolvimento...');
+        await askQuestion('\nPressione Enter para continuar...');
+        break;
+      case '6':
+        console.log('Funcionalidade de reiniciar em desenvolvimento...');
+        await askQuestion('\nPressione Enter para continuar...');
+        break;
+      case '7':
+        console.log('Funcionalidade de atualização em desenvolvimento...');
+        await askQuestion('\nPressione Enter para continuar...');
+        break;
+      case '8':
+        console.log('Funcionalidade de desinstalação em desenvolvimento...');
+        await askQuestion('\nPressione Enter para continuar...');
+        break;
+      case '9':
+        console.log('Encerrando sistema...');
+        // Para todos os processos ativos
+        activeProcesses.forEach(processo => {
+          try {
+            processo.process.kill();
+          } catch (error) {
+            // Ignora erros ao parar processos
+          }
+        });
+        rl.close();
+        process.exit(0);
+        break;
+      default:
+        console.log('Opção inválida! Tente novamente.');
+        await askQuestion('\nPressione Enter para continuar...');
+        break;
+    }
+  }
+}
+
+function startTotem(totem) {
+  console.log(`Iniciando totem "${totem.nome}"...`);
+
+  // Cria um novo processo para o totem em uma janela separada
+  const child = spawn('cmd', ['/c', 'start', 'cmd', '/k', `node print-bracelets.js "${totem.nome}"`], {
+    env: {
+      ...process.env,
+      TOTEM_ID: totem.totemId,
+      PRINTER_IP: totem.printerIp,
+      MACHINE_ID: totem.machineId,
+      RABBIT_URL: totem.rabbitUrl,
+      PRINTER_PORT: totem.printerPort,
+      TOTEM_NAME: totem.nome
+    },
+    detached: true
+  });
+
+  // Adiciona o processo à lista de ativos
+  const processoInfo = {
+    totemId: totem.id,
+    nome: totem.nome,
+    process: child,
+    startTime: new Date()
+  };
+
+  activeProcesses.push(processoInfo);
+
   child.on('close', (code) => {
-    console.log(`Sistema finalizado com código: ${code}`);
+    console.log(`Totem "${totem.nome}" finalizado com código: ${code}`);
+    // Remove da lista de processos ativos
+    const index = activeProcesses.findIndex(p => p.totemId === totem.id);
+    if (index !== -1) {
+      activeProcesses.splice(index, 1);
+    }
   });
 
   child.on('error', (error) => {
-    console.error('Erro ao iniciar o sistema:', error);
+    console.error(`Erro ao iniciar totem "${totem.nome}":`, error);
+    // Remove da lista de processos ativos em caso de erro
+    const index = activeProcesses.findIndex(p => p.totemId === totem.id);
+    if (index !== -1) {
+      activeProcesses.splice(index, 1);
+    }
   });
+
+  console.log(`✓ Totem "${totem.nome}" iniciado em nova janela!`);
+  console.log(`  PID: ${child.pid}`);
+  console.log(`  Totem ID: ${totem.totemId}`);
+  console.log(`  IP da Impressora: ${totem.printerIp}`);
 }
+
+// Função de limpeza ao sair
+process.on('SIGINT', () => {
+  console.log('\nEncerrando sistema e parando todos os totems...');
+  activeProcesses.forEach(processo => {
+    try {
+      processo.process.kill();
+    } catch (error) {
+      // Ignora erros ao parar processos
+    }
+  });
+  rl.close();
+  process.exit(0);
+});
 
 setup();

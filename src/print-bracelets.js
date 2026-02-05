@@ -26,35 +26,53 @@ const printerIp = process.env.PRINTER_IP || "192.168.123.40";
 const printerPort = process.env.PRINTER_PORT || 9100;
 const rabbitUrl = process.env.RABBIT_URL || "amqps://heqbymsv:2twbq9gst2Mo8GpjeRZ41Tdw46zu4Ygj@jackal.rmq.cloudamqp.com/heqbymsv";
 const machineId = process.env.MACHINE_ID || "totem";
+const totemName = process.env.TOTEM_NAME || "Totem Principal";
+
+// Define o título da janela do terminal
+if (process.argv[2]) {
+  process.title = `Totem: ${process.argv[2]}`;
+} else {
+  process.title = `Totem: ${totemName}`;
+}
 
 // Log das configurações carregadas
-console.log('=== Configurações Carregadas ===');
+console.log('=======================================================');
+console.log(`           ${totemName.toUpperCase()}`);
+console.log('=======================================================');
 console.log(`Totem ID: ${totemId}`);
 console.log(`Printer IP: ${printerIp}`);
 console.log(`Printer Port: ${printerPort}`);
 console.log(`Machine ID: ${machineId}`);
-console.log('===============================\n');
+console.log('=======================================================\n');
 
 if (!totemId) {
-  console.error("Erro: TOTEM_ID não definido");
+  console.error("❌ Erro: TOTEM_ID não definido");
   process.exit(1);
 }
 
 if (!printerIp) {
-  console.error("Erro: PRINTER_IP não definido");
+  console.error("❌ Erro: PRINTER_IP não definido");
   process.exit(1);
+}
+
+// Função para log com timestamp e nome do totem
+function log(message, type = 'INFO') {
+  const timestamp = new Date().toLocaleString();
+  const prefix = type === 'ERROR' ? '❌' : type === 'SUCCESS' ? '✅' : 'ℹ️';
+  console.log(`[${timestamp}] ${prefix} [${totemName}] ${message}`);
 }
 
 (async () => {
   try {
     const queueName = `print_bracelets_${totemId}`;
-    console.log(`Nome da fila: ${queueName}`);
+    log(`Nome da fila: ${queueName}`);
+    log('Conectando ao RabbitMQ...');
 
     const connection = await amqp.connect(rabbitUrl);
     const channel = await connection.createChannel();
 
     await channel.assertQueue(queueName, { durable: true });
-    console.log(`Aguardando mensagens na fila: ${queueName}`);
+    log(`Aguardando mensagens na fila: ${queueName}`, 'SUCCESS');
 
     channel.consume(queueName, (msg) => {
       if (msg !== null) {
@@ -69,10 +87,10 @@ if (!printerIp) {
         });
         const parent = removeAccentsAndSpecialChars(payload.parentName);
         const formatedParentName = parent.length > 20 ? parent.slice(0, 17) + '...' : parent;
-        console.log("PAYLOAD", payload);
-        console.log("children parent:", formatedParentName);
-        console.log("mensagem recebida", payload);
-        console.log(`Imprimindo ${children.length} pulseira(s)`);
+        
+        log(`Nova mensagem recebida para ${children.length} criança(s)`);
+        log(`Responsável: ${formatedParentName}`);
+        log(`Iniciando impressão de ${children.length} pulseira(s)...`);
 
         // Array para armazenar os IDs aleatórios das crianças
         let childsId = [];
@@ -80,10 +98,10 @@ if (!printerIp) {
         // Função para imprimir uma pulseira por vez (sequencial)
         function printNext(index) {
           if (index >= children.length) {
-            console.log('Todas as pulseiras das crianças foram impressas');
-            console.log('IDs das crianças:', childsId);
+            log('Todas as pulseiras das crianças foram impressas', 'SUCCESS');
+            log(`IDs das crianças: ${childsId.join(', ')}`);
             
-            console.log('Imprimindo pulseira do pai');
+            log('Iniciando impressão da pulseira do responsável...');
             let tspl = fs.readFileSync('layoutparent.tspl', 'utf8');
 
             // Concatena os IDs das crianças em uma única string
@@ -100,17 +118,18 @@ if (!printerIp) {
             // Configura a conexão com a impressora
             const client = new net.Socket();
             client.connect(printerPort, printerIp, () => {
-              console.log('Conectado à impressora para imprimir pulseira do pai');
+              log('Conectado à impressora para pulseira do responsável');
               client.write(tspl);
               client.end();
             });
 
             client.on('error', (err) => {
-              console.error('Erro na conexão para imprimir pulseira do pai:', err);
+              log(`Erro na conexão para pulseira do responsável: ${err.message}`, 'ERROR');
             });
 
             client.on('close', () => {
-              console.log('Conexão fechada após imprimir pulseira do pai');
+              log('Pulseira do responsável impressa com sucesso!', 'SUCCESS');
+              log('='.repeat(50));
             });
             
             channel.ack(msg);
@@ -119,7 +138,7 @@ if (!printerIp) {
 
           // Imprime a pulseira da criança atual
           const child = children[index];
-          console.log(`Imprimindo pulseira ${index + 1} para: ${child.name}`);
+          log(`Imprimindo pulseira ${index + 1}/${children.length} para: ${child.name}`);
           
           // Lê o arquivo de layout
           let tspl = fs.readFileSync('layout.tspl', 'utf8');
@@ -140,23 +159,22 @@ if (!printerIp) {
           // Conecta à impressora
           const client = new net.Socket();
           client.connect(printerPort, printerIp, () => {
-            console.log(`Conectado à impressora para ${child.name}`);
+            log(`Conectado à impressora para ${child.name}`);
             client.write(tspl, 'utf8', () => {
-              console.log(`Comando enviado para ${child.name}`);
+              log(`Dados enviados para impressão: ${child.name}`);
               client.end();
             });
           });
 
           client.on('error', (err) => {
-            console.error(`Erro na conexão para ${child.name}:`, err);
+            log(`Erro na conexão para ${child.name}: ${err.message}`, 'ERROR');
             // Mesmo com erro, continua para a próxima
             setTimeout(() => printNext(index + 1), 1000);
-            sendStatusMessage({ type: 'printing_error', message: `Erro ao imprimir pulseira para ${child.name}` });
           });
 
           client.on('close', () => {
-            console.log(`Conexão fechada para ${child.name}`);
-            // Aguarda 10 segundos antes da próxima impressão
+            log(`Pulseira de ${child.name} enviada com sucesso!`, 'SUCCESS');
+            // Aguarda 6 segundos antes da próxima impressão
             setTimeout(() => {
               printNext(index + 1);
             }, 6000);
@@ -169,7 +187,7 @@ if (!printerIp) {
     }, { noAck: false });
   }
   catch (error) {
-    console.error('Erro ao conectar ou consumir mensagens:', error);
+    log(`Erro ao conectar ou consumir mensagens: ${error.message}`, 'ERROR');
   }
 })();
 
