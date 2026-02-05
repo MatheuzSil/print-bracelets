@@ -4,14 +4,7 @@ const path = require('path');
 // Define o título da janela
 process.title = 'Sistema de Impressão de Pulseiras - Menu Principal';
 
-console.clear();
-console.log('=======================================================');
-console.log('Sistema de Impressão de Pulseiras [GITHUB]');
-console.log('=======================================================');
-console.log('Carregando sistema...');
-console.log('=======================================================\n');
-
-// Inicia o setup.js
+// Inicia o setup.js diretamente
 const setupPath = path.join(__dirname, 'src', 'setup.js');
 const child = spawn('node', [setupPath], {
   stdio: 'inherit'
@@ -23,7 +16,6 @@ child.on('error', (error) => {
 });
 
 child.on('close', (code) => {
-  console.log(`Sistema finalizado com código: ${code}`);
   process.exit(code);
 });
 

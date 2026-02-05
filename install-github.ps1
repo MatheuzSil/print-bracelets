@@ -173,11 +173,11 @@ echo  ================================================
 echo   Sistema de Impressao de Pulseiras [GITHUB]
 echo  ================================================
 echo.
-echo   [1] Configurar Sistema
-echo   [2] Ver Status do Sistema
-echo   [3] Ver Logs em Tempo Real  
-echo   [4] Iniciar Sistema
-echo   [5] Parar Sistema
+echo   [1] Cadastrar Totem
+echo   [2] Ver Totems Cadastrados
+echo   [3] Iniciar Totem  
+echo   [4] Parar Totem
+echo   [5] Ver Logs em Tempo Real
 echo   [6] Reiniciar Sistema
 echo   [7] Atualizar do GitHub
 echo   [8] Desinstalar Sistema
