@@ -208,6 +208,60 @@ async function pararTotem() {
   }
 }
 
+async function atualizarDoGitHub() {
+  console.log('\n=== Atualizando Sistema do GitHub ===\n');
+  
+  try {
+    console.log('🔄 Baixando atualizações do repositório...');
+    
+    // Executa git pull
+    const gitPull = spawn('git', ['pull', 'origin', 'main'], {
+      stdio: 'pipe',
+      cwd: process.cwd()
+    });
+
+    let output = '';
+    let errorOutput = '';
+
+    gitPull.stdout.on('data', (data) => {
+      output += data.toString();
+    });
+
+    gitPull.stderr.on('data', (data) => {
+      errorOutput += data.toString();
+    });
+
+    return new Promise((resolve) => {
+      gitPull.on('close', (code) => {
+        if (code === 0) {
+          console.log('✅ Atualização concluída com sucesso!');
+          console.log('\n📋 Resultado da atualização:');
+          console.log(output);
+          
+          if (output.includes('Already up to date')) {
+            console.log('ℹ️ Sistema já está na versão mais recente.');
+          } else {
+            console.log('🔄 Sistema atualizado! Reinicie o programa para aplicar as mudanças.');
+          }
+        } else {
+          console.log('❌ Erro durante a atualização:');
+          console.log(errorOutput);
+          console.log('\n💡 Dicas para resolver:');
+          console.log('1. Verifique se está em um repositório Git válido');
+          console.log('2. Certifique-se de ter o Git instalado');
+          console.log('3. Verifique sua conexão com a internet');
+        }
+        resolve();
+      });
+    });
+
+  } catch (error) {
+    console.log('❌ Erro ao executar atualização:', error.message);
+    console.log('\n💡 Tente executar manualmente:');
+    console.log('git pull origin main');
+  }
+}
+
 async function setup() {
   while (true) {
     console.clear();
@@ -255,7 +309,7 @@ async function setup() {
         await askQuestion('\nPressione Enter para continuar...');
         break;
       case '7':
-        console.log('Funcionalidade de atualização em desenvolvimento...');
+        await atualizarDoGitHub();
         await askQuestion('\nPressione Enter para continuar...');
         break;
       case '8':
