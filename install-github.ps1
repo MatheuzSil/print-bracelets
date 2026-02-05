@@ -112,8 +112,8 @@ COPY package*.json ./
 # Instalar dependências
 RUN npm install --production
 
-# Copiar código fonte
-COPY src/ ./
+# Copiar código fonte mantendo estrutura de pastas
+COPY src/ ./src/
 COPY run.js ./
 COPY layout.tspl ./
 COPY layoutparent.tspl ./
