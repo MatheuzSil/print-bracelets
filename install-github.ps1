@@ -1,64 +1,104 @@
-# Script de Instalação - Sistema de Impressão de Pulseiras (GitHub)
+# Script de Instalação/Atualização Único - Sistema de Impressão de Pulseiras (GitHub)
 Write-Host "======================================================" -ForegroundColor Green
-Write-Host "  Sistema de Impressão de Pulseiras - Instalação GitHub" -ForegroundColor Green  
+Write-Host "  Sistema de Impressão de Pulseiras - GitHub" -ForegroundColor Green  
 Write-Host "======================================================" -ForegroundColor Green
 Write-Host ""
 
-# Verificar se Docker está instalado e rodando
-Write-Host "Verificando Docker..." -ForegroundColor Blue
-try {
-    docker --version | Out-Null
-    Write-Host "✓ Docker encontrado" -ForegroundColor Green
-} catch {
-    Write-Host "✗ Docker não encontrado!" -ForegroundColor Red
-    Write-Host ""
-    Write-Host "Por favor, instale o Docker Desktop primeiro:" -ForegroundColor Yellow
-    Write-Host "https://www.docker.com/products/docker-desktop/" -ForegroundColor White
-    Write-Host ""
-    Read-Host "Pressione Enter para sair"
-    exit 1
-}
+# Detectar se é instalação nova ou atualização
+$ContainerName = "print-bracelets-system"
+$IsUpdate = $false
 
+# Verificar se container já existe
 try {
-    docker info | Out-Null
-    Write-Host "✓ Docker está rodando" -ForegroundColor Green
+    $ExistingContainer = docker ps -aq --filter name=$ContainerName 2>$null
+    if ($ExistingContainer) {
+        $IsUpdate = $true
+        Write-Host "🔄 Sistema existente detectado - Modo ATUALIZAÇÃO" -ForegroundColor Blue
+    } else {
+        Write-Host "🆕 Novo sistema - Modo INSTALAÇÃO" -ForegroundColor Blue
+    }
 } catch {
-    Write-Host "✗ Docker não está rodando!" -ForegroundColor Red
-    Write-Host "Inicie o Docker Desktop e execute este script novamente." -ForegroundColor Yellow
-    Read-Host "Pressione Enter para sair"
-    exit 1
+    Write-Host "🆕 Novo sistema - Modo INSTALAÇÃO" -ForegroundColor Blue
 }
 
 Write-Host ""
-Write-Host "Instalando sistema com código mais recente do GitHub..." -ForegroundColor Blue
+
+# Verificar se Docker está instalado e rodando (apenas para instalação nova)
+if (-not $IsUpdate) {
+    Write-Host "Verificando Docker..." -ForegroundColor Blue
+    try {
+        docker --version | Out-Null
+        Write-Host "✓ Docker encontrado" -ForegroundColor Green
+    } catch {
+        Write-Host "✗ Docker não encontrado!" -ForegroundColor Red
+        Write-Host ""
+        Write-Host "Por favor, instale o Docker Desktop primeiro:" -ForegroundColor Yellow
+        Write-Host "https://www.docker.com/products/docker-desktop/" -ForegroundColor White
+        Write-Host ""
+        Read-Host "Pressione Enter para sair"
+        exit 1
+    }
+
+    try {
+        docker info | Out-Null
+        Write-Host "✓ Docker está rodando" -ForegroundColor Green
+    } catch {
+        Write-Host "✗ Docker não está rodando!" -ForegroundColor Red
+        Write-Host "Inicie o Docker Desktop e execute este script novamente." -ForegroundColor Yellow
+        Read-Host "Pressione Enter para sair"
+        exit 1
+    }
+    Write-Host ""
+}
+if ($IsUpdate) {
+    Write-Host "🔄 ATUALIZANDO sistema com código mais recente do GitHub..." -ForegroundColor Blue
+} else {
+    Write-Host "🆕 INSTALANDO sistema com código mais recente do GitHub..." -ForegroundColor Blue
+}
 
 # Configurações
-$ContainerName = "print-bracelets-system"
 $InstallPath = "C:\PrintBracelets"
 $RepoUrl = "https://github.com/MatheuzSil/print-bracelets.git"
 
 # Parar containers existentes
+if ($IsUpdate) {
+    Write-Host "Parando sistema atual..." -ForegroundColor Yellow
+}
 docker stop $ContainerName 2>$null
 docker rm $ContainerName 2>$null
 
 # Criar diretório temporário para clone
-$TempPath = "$env:TEMP\print-bracelets-build"
+if ($IsUpdate) {
+    $TempPath = "$env:TEMP\print-bracelets-update"
+} else {
+    $TempPath = "$env:TEMP\print-bracelets-build"
+}
+
 if (Test-Path $TempPath) {
     Remove-Item -Recurse -Force $TempPath
 }
 
-Write-Host "Clonando repositório do GitHub..." -ForegroundColor Yellow
+Write-Host "Baixando código mais recente do GitHub..." -ForegroundColor Blue
 git clone $RepoUrl $TempPath
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host "❌ Erro ao clonar repositório!" -ForegroundColor Red
-    Write-Host "Verifique se você tem acesso ao repositório ou use a instalação padrão." -ForegroundColor Yellow
+    if ($IsUpdate) {
+        Write-Host "Verifique sua conexão com a internet." -ForegroundColor Yellow
+    } else {
+        Write-Host "Verifique se você tem acesso ao repositório ou use a instalação padrão." -ForegroundColor Yellow
+    }
     Read-Host "Pressione Enter para sair"
     exit 1
 }
 
 # Criar Dockerfile no diretório temporário
-Write-Host "Criando Dockerfile..." -ForegroundColor Yellow
+if ($IsUpdate) {
+    Write-Host "Preparando nova versão..." -ForegroundColor Blue
+} else {
+    Write-Host "Criando Dockerfile..." -ForegroundColor Yellow
+}
+
 $DockerfileContent = @"
 # Use uma imagem Node.js oficial
 FROM node:18-alpine
@@ -72,8 +112,9 @@ COPY package*.json ./
 # Instalar dependências
 RUN npm install --production
 
-# Copiar código fonte
-COPY src/ ./
+# Copiar código fonte mantendo estrutura de pastas
+COPY src/ ./src/
+COPY run.js ./
 COPY layout.tspl ./
 COPY layoutparent.tspl ./
 
@@ -81,13 +122,18 @@ COPY layoutparent.tspl ./
 RUN mkdir -p /app/config
 
 # Comando padrão para iniciar o sistema
-CMD ["node", "setup.js"]
+CMD ["node", "run.js"]
 "@
 
 $DockerfileContent | Out-File -FilePath "$TempPath\Dockerfile" -Encoding UTF8
 
 # Fazer build da imagem
-Write-Host "Fazendo build da imagem com código atualizado..." -ForegroundColor Blue
+if ($IsUpdate) {
+    Write-Host "Fazendo build da versão atualizada..." -ForegroundColor Blue
+} else {
+    Write-Host "Fazendo build da imagem com código atualizado..." -ForegroundColor Blue
+}
+
 Set-Location $TempPath
 docker build -t print-bracelets-github .
 
@@ -105,14 +151,17 @@ Remove-Item -Recurse -Force $TempPath
 
 Write-Host "✅ Build concluído com sucesso!" -ForegroundColor Green
 
-# Criar diretório de instalação
-New-Item -ItemType Directory -Path $InstallPath -Force | Out-Null
+# Criar diretório de instalação (apenas se não existir)
+if (-not $IsUpdate) {
+    New-Item -ItemType Directory -Path $InstallPath -Force | Out-Null
+}
 
-# Criar scripts básicos
-Write-Host "Criando scripts de controle..." -ForegroundColor Yellow
+# Criar scripts básicos (apenas na instalação inicial)
+if (-not $IsUpdate) {
+    Write-Host "Criando scripts de controle..." -ForegroundColor Yellow
 
-# Menu Principal
-@"
+    # Menu Principal
+    @"
 @echo off
 title Sistema de Impressao - Menu Principal
 color 0A
@@ -124,11 +173,11 @@ echo  ================================================
 echo   Sistema de Impressao de Pulseiras [GITHUB]
 echo  ================================================
 echo.
-echo   [1] Configurar Sistema
-echo   [2] Ver Status do Sistema
-echo   [3] Ver Logs em Tempo Real  
-echo   [4] Iniciar Sistema
-echo   [5] Parar Sistema
+echo   [1] Cadastrar Totem
+echo   [2] Ver Totems Cadastrados
+echo   [3] Iniciar Totem  
+echo   [4] Parar Totem
+echo   [5] Ver Logs em Tempo Real
 echo   [6] Reiniciar Sistema
 echo   [7] Atualizar do GitHub
 echo   [8] Desinstalar Sistema
@@ -179,7 +228,7 @@ pause
 goto MENU
 
 :ATUALIZAR
-call "C:\PrintBracelets\atualizar.bat"
+powershell.exe -ExecutionPolicy Bypass -File "C:\PrintBracelets\install-github.ps1"
 pause
 goto MENU
 
@@ -189,8 +238,8 @@ pause
 goto MENU
 "@ | Out-File -FilePath "$InstallPath\menu-principal.bat" -Encoding ASCII
 
-# Script de Configuração
-@"
+    # Script de Configuração
+    @"
 @echo off
 title Sistema de Impressao - Configurar
 color 0B
@@ -201,7 +250,7 @@ echo ========================================
 echo.
 echo Acessando configuracao interativa...
 echo.
-docker exec -it print-bracelets-system node setup.js
+docker exec -it print-bracelets-system node run.js
 echo.
 echo Configuracao concluida!
 "@ | Out-File -FilePath "$InstallPath\configurar.bat" -Encoding ASCII
@@ -240,8 +289,8 @@ echo.
 docker logs -f print-bracelets-system
 "@ | Out-File -FilePath "$InstallPath\logs.bat" -Encoding ASCII
 
-# Script de Iniciar
-@"
+    # Script de Iniciar
+    @"
 @echo off
 title Sistema de Impressao - Iniciar
 color 0A
@@ -265,9 +314,9 @@ if errorlevel 1 (
 )
 
 echo.
-echo Acessando sistema de configuracao...
+echo Acessando sistema de gerenciamento de totems...
 echo.
-docker exec -it print-bracelets-system node /app/setup.js
+docker exec -it print-bracelets-system node /app/run.js
 echo.
 echo Sistema finalizado!
 "@ | Out-File -FilePath "$InstallPath\iniciar.bat" -Encoding ASCII
@@ -308,8 +357,8 @@ docker restart print-bracelets-system 2>nul
 echo Sistema reiniciado!
 "@ | Out-File -FilePath "$InstallPath\reiniciar.bat" -Encoding ASCII
 
-# Script de Atualizar do GitHub
-@"
+    # Script de Atualizar do GitHub
+    @"
 @echo off
 title Sistema de Impressao - Atualizar
 color 0C
@@ -330,72 +379,16 @@ if /i "%confirmacao%" neq "s" (
     exit /b 0
 )
 echo.
-powershell.exe -ExecutionPolicy Bypass -File "C:\PrintBracelets\update-github.ps1"
+powershell.exe -ExecutionPolicy Bypass -File "C:\PrintBracelets\install-github.ps1"
 echo.
 echo Atualizacao concluida!
 "@ | Out-File -FilePath "$InstallPath\atualizar.bat" -Encoding ASCII
 
-# Criar script PowerShell de atualização separadamente
-$UpdateScriptContent = @'
-# Script de Atualização do GitHub
-$ContainerName = "print-bracelets-system"
-$RepoUrl = "https://github.com/MatheuzSil/print-bracelets.git"
+    # Remover script PowerShell separado de atualização (não é mais necessário)
+    # Agora usa o próprio install-github.ps1
 
-Write-Host "Parando container atual..." -ForegroundColor Yellow
-docker stop $ContainerName 2>$null
-docker rm $ContainerName 2>$null
-
-$TempPath = "$env:TEMP\print-bracelets-update"
-if (Test-Path $TempPath) {
-    Remove-Item -Recurse -Force $TempPath
-}
-
-Write-Host "Clonando versão mais recente..." -ForegroundColor Blue
-git clone $RepoUrl $TempPath
-
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "Erro ao clonar repositório!" -ForegroundColor Red
-    exit 1
-}
-
-$DockerfileContent = @"
-FROM node:18-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm install --production
-COPY src/ ./
-COPY layout.tspl ./
-COPY layoutparent.tspl ./
-RUN mkdir -p /app/config
-CMD ["node", "setup.js"]
-"@
-
-$DockerfileContent | Out-File -FilePath "$TempPath\Dockerfile" -Encoding UTF8
-
-Write-Host "Fazendo build da nova versão..." -ForegroundColor Blue
-Set-Location $TempPath
-docker build -t print-bracelets-github .
-
-if ($LASTEXITCODE -eq 0) {
-    Write-Host "Iniciando sistema atualizado..." -ForegroundColor Green
-    
-    $ConfigPath = "C:\PrintBracelets\config"
-    
-    docker run -d --name $ContainerName --restart unless-stopped --network host -it -v "${ConfigPath}:/app/config" print-bracelets-github
-    
-    Write-Host "✅ Sistema atualizado com sucesso!" -ForegroundColor Green
-} else {
-    Write-Host "❌ Erro no build!" -ForegroundColor Red
-}
-
-Set-Location "C:\PrintBracelets"
-Remove-Item -Recurse -Force $TempPath
-'@
-
-$UpdateScriptContent | Out-File -FilePath "$InstallPath\update-github.ps1" -Encoding UTF8
-
-# Script de Desinstalar
-@"
+    # Script de Desinstalar
+    @"
 @echo off
 title Sistema de Impressao - Desinstalar
 color 0C
@@ -426,21 +419,26 @@ echo.
 echo Para reinstalar, execute o instalador novamente.
 "@ | Out-File -FilePath "$InstallPath\desinstalar.bat" -Encoding ASCII
 
-# Criar atalho na área de trabalho
-Write-Host "Criando atalho na área de trabalho..." -ForegroundColor Yellow
-$DesktopPath = [Environment]::GetFolderPath('Desktop')
-$ShortcutPath = "$DesktopPath\Sistema de Impressao [GitHub].lnk"
+    # Criar atalho na área de trabalho
+    Write-Host "Criando atalho na área de trabalho..." -ForegroundColor Yellow
+    $DesktopPath = [Environment]::GetFolderPath('Desktop')
+    $ShortcutPath = "$DesktopPath\Sistema de Impressao [GitHub].lnk"
 
-$WshShell = New-Object -ComObject WScript.Shell
-$Shortcut = $WshShell.CreateShortcut($ShortcutPath)
-$Shortcut.TargetPath = "$InstallPath\menu-principal.bat"
-$Shortcut.WorkingDirectory = $InstallPath
-$Shortcut.Description = "Sistema de Impressao de Pulseiras [GitHub]"
-$Shortcut.IconLocation = "shell32.dll,138"
-$Shortcut.Save()
+    $WshShell = New-Object -ComObject WScript.Shell
+    $Shortcut = $WshShell.CreateShortcut($ShortcutPath)
+    $Shortcut.TargetPath = "$InstallPath\menu-principal.bat"
+    $Shortcut.WorkingDirectory = $InstallPath
+    $Shortcut.Description = "Sistema de Impressao de Pulseiras [GitHub]"
+    $Shortcut.IconLocation = "shell32.dll,138"
+    $Shortcut.Save()
+}
 
 # Iniciar sistema
-Write-Host "Iniciando sistema..." -ForegroundColor Blue
+if ($IsUpdate) {
+    Write-Host "Reiniciando sistema atualizado..." -ForegroundColor Blue
+} else {
+    Write-Host "Iniciando sistema..." -ForegroundColor Blue
+}
 
 # Criar pasta de configuração
 $ConfigPath = "$InstallPath\config"
@@ -450,23 +448,35 @@ New-Item -ItemType Directory -Path $ConfigPath -Force | Out-Null
 docker run -d --name $ContainerName --restart unless-stopped --network host -it -v "${ConfigPath}:/app/config" print-bracelets-github
 
 Write-Host ""
-Write-Host "✅ INSTALAÇÃO CONCLUÍDA!" -ForegroundColor Green
-Write-Host ""
-Write-Host "🖱️  ATALHO CRIADO:" -ForegroundColor Blue
-Write-Host "   'Sistema de Impressao [GitHub].lnk' na área de trabalho" -ForegroundColor White
+if ($IsUpdate) {
+    Write-Host "✅ ATUALIZAÇÃO CONCLUÍDA!" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "🔄 NOVO SISTEMA POSSUI:" -ForegroundColor Blue
+    Write-Host "   ✓ Gerenciamento de múltiplos totems" -ForegroundColor White
+    Write-Host "   ✓ Cada totem em janela separada" -ForegroundColor White
+    Write-Host "   ✓ Configurações salvas permanentemente" -ForegroundColor White
+    Write-Host "   ✓ Sistema de logs melhorado" -ForegroundColor White
+    Write-Host "   ✓ Todas as correções mais recentes" -ForegroundColor White
+} else {
+    Write-Host "✅ INSTALAÇÃO CONCLUÍDA!" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "🖱️  ATALHO CRIADO:" -ForegroundColor Blue
+    Write-Host "   'Sistema de Impressao [GitHub].lnk' na área de trabalho" -ForegroundColor White
+}
+
 Write-Host ""
 Write-Host "🎯 PRÓXIMOS PASSOS:" -ForegroundColor Blue
 Write-Host "   1. Clique no ícone da área de trabalho" -ForegroundColor White
 Write-Host "   2. Escolha 'Configurar Sistema'" -ForegroundColor White
-Write-Host "   3. Configure ID do totem e IP da impressora" -ForegroundColor White
-Write-Host "   4. Sistema estará pronto!" -ForegroundColor White
+Write-Host "   3. Cadastre seus totems" -ForegroundColor White
+Write-Host "   4. Inicie os totems desejados" -ForegroundColor White
 Write-Host ""
-Write-Host "🔄 ATUALIZAÇÕES:" -ForegroundColor Blue
-Write-Host "   Use a opção 'Atualizar do GitHub' no menu" -ForegroundColor White
+Write-Host "🔄 ATUALIZAÇÕES FUTURAS:" -ForegroundColor Blue
+Write-Host "   Execute este mesmo script install-github.ps1" -ForegroundColor White
 Write-Host "   para sempre ter a versão mais recente!" -ForegroundColor White
 Write-Host ""
-Write-Host "📁 Scripts instalados em: $InstallPath" -ForegroundColor Blue
+Write-Host "📁 Sistema instalado em: $InstallPath" -ForegroundColor Blue
 Write-Host ""
-Write-Host "🎉 Sistema pronto para uso com código atualizado!" -ForegroundColor Green
+Write-Host "🎉 Sistema pronto com múltiplos totems!" -ForegroundColor Green
 Write-Host ""
 Read-Host "Pressione Enter para sair"
