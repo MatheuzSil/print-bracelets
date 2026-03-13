@@ -95,6 +95,26 @@ function log(message, type = 'INFO') {
         // Array para armazenar os IDs aleatórios das crianças
         let childsId = [];
 
+        // Gera IDs únicos para todas as crianças no início
+        function generateUniqueIds(count) {
+          const ids = new Set();
+          const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+          
+          while (ids.size < count) {
+            // Gera letra aleatória + 3 dígitos
+            const randomLetter = letters[Math.floor(Math.random() * letters.length)];
+            const randomNumber = Math.floor(100 + Math.random() * 900); // 100-999
+            const id = `${randomLetter}${randomNumber}`;
+            ids.add(id);
+          }
+          
+          return Array.from(ids);
+        }
+
+        // Gera todos os IDs únicos necessários
+        childsId = generateUniqueIds(children.length);
+        log(`IDs únicos gerados: ${childsId.join(', ')}`);
+
         // Função para imprimir uma pulseira por vez (sequencial)
         function printNext(index) {
           if (index >= children.length) {
@@ -142,7 +162,10 @@ function log(message, type = 'INFO') {
           
           // Lê o arquivo de layout
           let tspl = fs.readFileSync('layout.tspl', 'utf8');
-          const Id = Math.floor(10000 + Math.random() * 90000).toString().slice(0, 3);
+          
+          // Usa o ID único já gerado para esta criança
+          const Id = childsId[index];
+          
           const ageByDateOfBirth = new Date().getFullYear() - new Date(child.birthDate).getFullYear();
           let childClass;
           switch (ageByDateOfBirth) {
@@ -173,8 +196,6 @@ function log(message, type = 'INFO') {
               childClass = '';
               break;
           }
-          // Adiciona o ID da criança ao array
-          childsId.push(Id);
           
           // Substitui os placeholders pelos valores variáveis
           tspl = tspl
